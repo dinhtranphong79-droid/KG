@@ -17,6 +17,11 @@ header{display:flex;gap:12px;align-items:center;justify-content:space-between;ma
 .hero-list{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow:auto;}
 .hero{display:grid;grid-template-columns:1fr 100px 100px 120px 80px;gap:8px;align-items:center;padding:8px;border-radius:8px;background:#fff;border:1px solid rgba(0,0,0,0.04);}
 .hero small{color:var(--muted);}
+.hero.fire { border-left:6px solid var(--fire); background:#fff; }
+.hero.cung { border-left:6px solid var(--light); background:#fff; }
+.hero.độc { border-left:6px solid var(--wind); background:#fff; }
+.hero.băng { border-left:6px solid var(--water); background:#fff; }
+.hero.exp { border-left:6px solid var(--exp); background:#fff; }  
 input[type="number"], select, input[type="text"]{width:100%;padding:6px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);background:transparent;color:inherit}
 .btn{padding:8px 10px;border-radius:8px;border:0;cursor:pointer;background:var(--accent);color:#fff;font-weight:600;}
 .btn.ghost{background:transparent;border:1px solid rgba(0,0,0,0.08);color:var(--muted);}
