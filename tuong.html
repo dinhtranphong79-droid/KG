@@ -17,11 +17,6 @@ header{display:flex;gap:12px;align-items:center;justify-content:space-between;ma
 .hero-list{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow:auto;}
 .hero{display:grid;grid-template-columns:1fr 100px 100px 120px 80px;gap:8px;align-items:center;padding:8px;border-radius:8px;background:#fff;border:1px solid rgba(0,0,0,0.04);}
 .hero small{color:var(--muted);}
-.hero.fire { border-left:6px solid var(--fire); background:#fff; }
-.hero.cung { border-left:6px solid var(--light); background:#fff; }
-.hero.độc { border-left:6px solid var(--wind); background:#fff; }
-.hero.băng { border-left:6px solid var(--water); background:#fff; }
-.hero.exp { border-left:6px solid var(--exp); background:#fff; }  
 input[type="number"], select, input[type="text"]{width:100%;padding:6px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);background:transparent;color:inherit}
 .btn{padding:8px 10px;border-radius:8px;border:0;cursor:pointer;background:var(--accent);color:#fff;font-weight:600;}
 .btn.ghost{background:transparent;border:1px solid rgba(0,0,0,0.08);color:var(--muted);}
@@ -70,13 +65,9 @@ const COST_ARRAY = {0:[20,20],1:[30,40,50],2:[60,70,80,80],3:[100,110,120,130,14
 const CARD_POINT = 14000;
 const SYSTEMS = ["Lửa","Cung","Độc","Băng"];
 const EXP_CATS = {"B+":100,"B":700,"SR":3500};
-const heroesData = {
-  "Lửa": ["Dolvar","Paul","Alex","Allen","Anko","Apollo","Blaise","Brie","Catrina","Christie","Cosette","Dain","Darcy","Daria","Dean","Edmund","Erika","Fiona","Gisele","Gro","Ivy","Kenshiro","Kirona","Kyle","Lovelace","Mirai","Penny","Seraphin","Simon","Sindra","Theodore","Tracy","Vanessa","Wallis"],
-  "Cung": ["Aidan","Alden","Ariza","Authur","Bella","Colin","Doris","Dylan","Eleanora","Fatima","Gabriel","Green","Jennifer","Johannes","Kadir","Kailin","Layla","Livia","Maya","Meg","Mira","Montag","O'Neil","Padme","Pan","Ptolemy","Richard","Ryan","Sahar","Sebastian","Seraphia","Solder","Torvi","Trist"],
-  "Độc": ["Allison","Angelina","Arwin","Benjamin","Blackwell","Boudica","Catherine","Chiyoko","Claudia","Daisy","Elia","Gruen","Issac","Lilith","Lomax","Luvia","Maxwell","Meniere","Morgana","Mycelia","Naga","Pythia","Rila","Rogers","Rosamond","Suad","Tumnus","Viper","Viola","Webster","Wendy"],
-  "Băng": ["Aurora","Christine","Clarence","Enzo","Eslaine","Filius","Hadi","Hana","Hathes","Havik","Jessica","Judy","Keith","Lilani","Loka","Maud","Nathaniel","Nicole","Nina","Nivea","Olaf","Parr","Paula","Pedra","Ralph","Rebecca","Rudolph","Selene","Trishy","Vera","Ao Deng","Ao Yue"]
-};
+const heroesData = {"Lửa":["Dolvar","Paul","Alex","Allen","Anko","Apollo","Blaise","Brie","Catrina","Christie","Cosette","Dain","Darcy","Daria","Dean","Edmund","Erika","Fiona","Gisele","Gro","Ivy","Kenshiro","Kirona","Kyle","Lovelace","Mirai","Penny","Seraphin","Simon","Sindra","Theodore","Tracy","Vanessa","Wallis"],"Cung":["Aidan","Alden","Ariza","Authur","Bella","Colin","Doris","Dylan","Eleanora","Fatima","Gabriel","Green","Jennifer","Johannes","Kadir","Kailin","Layla","Livia","Maya","Meg","Mira","Montag","O'Neil","Padme","Pan","Ptolemy","Richard","Ryan","Sahar","Sebastian","Seraphia","Solder","Torvi","Trist"],"Độc":["Allison","Angelina","Arwin","Benjamin","Blackwell","Boudica","Catherine","Chiyoko","Claudia","Daisy","Elia","Gruen","Issac","Lilith","Lomax","Luvia","Maxwell","Meniere","Morgana","Mycelia","Naga","Pythia","Rila","Rogers","Rosamond","Suad","Tumnus","Viper","Viola","Webster","Wendy"],"Băng":["Aurora","Christine","Clarence","Enzo","Eslaine","Filius","Hadi","Hana","Hathes","Havik","Jessica","Judy","Keith","Lilani","Loka","Maud","Nathaniel","Nicole","Nina","Nivea","Olaf","Parr","Paula","Pedra","Ralph","Rebecca","Rudolph","Selene","Trishy","Vera","Ao Deng","Ao Yue"]};
 const expList = { "B+": ["Daniel"], "B": ["Anton","Peter","Etley"], "SR": ["Alucard","Samar","Harold","Kris","Merlin","Ophelia","Arwyn"]};
+
 const LS_KEY_PREFIX = "acc_";
 const $ = id=>document.getElementById(id);
 let state={heroes:[],activeTab:SYSTEMS[0]};
@@ -130,7 +121,6 @@ function createHeroElement(h){
   box.appendChild(nameCol); box.appendChild(starCol); box.appendChild(barCol); box.appendChild(cardCol); box.appendChild(opsCol);
   return box;
 }
-loadState();
 
 function renderHeroList(){
   const list=$("heroList"); list.innerHTML=""; const f=($("filterHero").value||"").trim().toLowerCase();
@@ -145,39 +135,7 @@ function renderSummary(){
   const totalRow=document.createElement("div"); totalRow.className="row"; totalRow.style.borderTop="1px solid #ccc"; totalRow.style.fontWeight="700"; totalRow.innerHTML=`<span>Tổng điểm</span><span class="big">${formatNumber(grandTotal)}</span>`; box.appendChild(totalRow);
   try{ parent.postMessage({type:'updatePoint', tab:'tuong', value: grandTotal}, "*"); } catch(e){}
 }
-  // Dòng tổng điểm
-  const totalRow = document.createElement("div");
-  totalRow.className = "row";
-  totalRow.style.borderTop = "1px solid #ccc";
-  totalRow.style.fontWeight = "700";
-  totalRow.innerHTML = `<span>Tổng điểm</span><span class="big">${formatNumber(grandTotal)}</span>`;
-  box.appendChild(totalRow);
-}
 
-function renderTabs(){
-  const tabs=$("tabs"); tabs.innerHTML="";
-  SYSTEMS.concat(Object.keys(expList)).forEach(s=>{
-    const t=document.createElement("div"); t.className="tab"+(state.activeTab===s?" active":""); t.textContent=s;
-    const color=s==="Lửa"?"var(--fire)":s==="Cung"?"var(--light)":s==="Độc"?"var(--wind)":s==="Băng"?"var(--water)":"var(--exp)";
-    if(state.activeTab===s){ t.style.background=color; t.style.color="#fff"; t.style.fontWeight="600"; } else { t.style.background="#eaeaea"; t.style.color="var(--muted)"; t.style.fontWeight="400"; }
-    t.onclick=()=>{ state.activeTab=s; saveState(); renderTabs(); renderHeroList(); $("systemTitle").innerText=s; };
-    tabs.appendChild(t);
-  });
-}
-
-function saveState(){ localStorage.setItem(LS_KEY,JSON.stringify(state)); }
-function loadState(){
-  const data=localStorage.getItem(LS_KEY);
-  if(data){ state=JSON.parse(data);} 
-  SYSTEMS.concat(Object.keys(expList)).forEach(s=>{ (heroesData[s]||[]).forEach(n=>{ if(!state.heroes.find(h=>h.name===n)) state.heroes.push(defaultHeroData(n,s)); }); });
-  for(const cat in expList) expList[cat].forEach(n=>{ if(!state.heroes.find(h=>h.name===n)) state.heroes.push(defaultHeroData(n,"Exp")); });
-  saveState();
-}
-
-$("filterHero").oninput=renderHeroList;
-$("btnCalcAll").onclick=()=>{renderSummary();};
-
-loadState(); renderTabs(); renderHeroList(); renderSummary();
 /* account save/load */
 let currentAcc = localStorage.getItem("current_acc") || "";
 function heroKey(acc){ return "acc_" + acc + "_hero"; }
