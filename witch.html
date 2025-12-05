@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Witch</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f0f4f8; margin: 0; padding: 20px; }
+  h1 { text-align: center; }
+  .container { display: flex; gap: 20px; flex-wrap: wrap; }
+  .t-card { background: #ffffff; border-radius: 8px; padding: 10px; width: 300px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+  .buoi { display: flex; align-items: center; justify-content: space-between; padding: 5px; border-radius: 5px; margin-bottom: 5px; font-weight: bold; color: #fff; transition: background 0.3s; }
+  .xanh-duong { background-color: #93c5fd; } 
+  .xanh-duong.active { background-color: #3B82F6; } 
+  .do { background-color: #fca5a5; }
+  .do.active { background-color: #EF4444; }
+  .xanh-ngoc { background-color: #5eead4; }
+  .xanh-ngoc.active { background-color: #14B8A6; }
+  .tim { background-color: #d8b4fe; }
+  .tim.active { background-color: #A855F7; }
+  .vang { background-color: #fef08a; color: #fff; } 
+  .vang.active { background-color: #FACC15; color: #fff; } 
+  .xanh-la { background-color: #86efac; }
+  .xanh-la.active { background-color: #22C55E; }
+  input[type="number"] { width: 60px; }
+  .summary { margin-top: 20px; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);}
+  button { margin-top: 10px; padding: 8px 12px; border: none; border-radius: 5px; background: #3B82F6; color: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<h1>Witch</h1>
+
+<div>
+  <label>Thuốc thử ánh sáng: <input type="number" id="thuocThu" value="0" min="0"></label>
+  <label>Thuốc tăng cường: <input type="number" id="thuocTangCuong" value="0" min="0"></label>
+  <label>Thuốc may mắn: <input type="number" id="thuocMayMan" value="0" min="0"></label>
+</div>
+
+<div class="container" id="tContainer"></div>
+
+<button onclick="tinhToan()">Tính điểm và nâng tối ưu</button>
+
+<div class="summary" id="summary">
+  <h2>Bảng tổng kết</h2>
+  <p id="summaryDetail"></p>
+  <h3>Nâng từng bụi</h3>
+  <ul id="suggestList"></ul>
+</div>
+
+<script>
+const TData = {
+  T1: {boost: 30, luck: 5},
+  T2: {boost: 90, luck: 20},
+  T3: {boost: 430, luck: 80},
+  T4: {boost: 2110, luck: 400},
+  T5: {boost: 10530, luck: 2000},
+  T6: {boost: 52640, luck: 10000},
+  T7: {boost: 263160, luck: 50000},
+  T8: {boost: 1315790, luck: 250000},
+  T9: {boost: 6578950, luck: 1250000}
+};
+const buoiColors = [
+  {name:"Xanh Dương", class:"xanh-duong"},
+  {name:"Đỏ", class:"do"},
+  {name:"Xanh Ngọc", class:"xanh-ngoc"},
+  {name:"Tím", class:"tim"},
+  {name:"Vàng", class:"vang"},
+  {name:"Xanh Lá", class:"xanh-la"}
+];
+const MAX_LEVEL = 20;
+
+// Render T và bụi
+const tContainer = document.getElementById("tContainer");
+for (let t in TData) {
+  const tCard = document.createElement("div");
+  tCard.className = "t-card";
+  tCard.innerHTML = `<h3>${t}</h3>`;
+  buoiColors.forEach((b)=>{
+    const buoiDiv = document.createElement("div");
+    buoiDiv.className = `buoi ${b.class}`;
+    buoiDiv.innerHTML = `
+      <label>
+        <input type="checkbox" class="checkbox-buoi" data-t="${t}" data-buoi="${b.name}">
+        ${b.name}
+      </label>
+      <input type="number" class="input-level" data-t="${t}" data-buoi="${b.name}" value="0" min="0" max="${MAX_LEVEL}" disabled>
+    `;
+    tCard.appendChild(buoiDiv);
+  });
+  tContainer.appendChild(tCard);
+}
+
+// Bật/tắt input level
+document.querySelectorAll(".checkbox-buoi").forEach(cb=>{
+  cb.addEventListener("change", ()=>{
+    const t = cb.dataset.t;
+    const buoi = cb.dataset.buoi;
+    const input = document.querySelector(`.input-level[data-t="${t}"][data-buoi="${buoi}"]`);
+    input.disabled = !cb.checked;
+    const parentDiv = cb.closest(".buoi");
+    if(cb.checked){
+      parentDiv.classList.add("active");
+    } else {
+      parentDiv.classList.remove("active");
+      input.value = 0;
+    }
+  });
+});
+
+function tinhToan(){
+  const thuocThu = parseInt(document.getElementById("thuocThu").value) || 0;
+  const thuocTangCuong = parseInt(document.getElementById("thuocTangCuong").value) || 0;
+  const thuocMayMan = parseInt(document.getElementById("thuocMayMan").value) || 0;
+
+  let totalTCUsed=0, totalMMUsed=0;
+  const suggestList = [];
+
+  const inputs = document.querySelectorAll(".input-level");
+
+  // Tính điểm dựa trên thuốc hiện có
+  inputs.forEach(inp => {
+    const t = inp.dataset.t;
+    const buoi = inp.dataset.buoi;
+    const cb = document.querySelector(`.checkbox-buoi[data-t="${t}"][data-buoi="${buoi}"]`);
+    if(!cb.checked) return;
+
+    let level = parseInt(inp.value) || 0;
+    if(level > MAX_LEVEL) level = MAX_LEVEL;
+
+    const boost = TData[t].boost;
+    const luck = TData[t].luck;
+
+    // Thuốc tăng cường
+    const tcNeeded = boost * level;
+    if(tcNeeded <= thuocTangCuong){
+      totalTCUsed += tcNeeded;
+    } else {
+      totalTCUsed += Math.min(tcNeeded, thuocTangCuong);
+    }
+
+    // Thuốc may mắn
+    let mmUsed = 0;
+    if(level >=10){
+      mmUsed = luck * (level - 9);
+      totalMMUsed += Math.min(mmUsed, thuocMayMan);
+    }
+  });
+
+  // Gợi ý nâng tối đa dựa trên thuốc ban đầu, tách riêng
+  inputs.forEach(inp => {
+    const t = inp.dataset.t;
+    const buoi = inp.dataset.buoi;
+    const cb = document.querySelector(`.checkbox-buoi[data-t="${t}"][data-buoi="${buoi}"]`);
+    if(!cb.checked) return;
+
+    let level = parseInt(inp.value) || 0;
+    if(level > MAX_LEVEL) level = MAX_LEVEL;
+
+    const boost = TData[t].boost;
+    const luck = TData[t].luck;
+
+    let maxExtraLevel = 0;
+    let tempTC = thuocTangCuong;
+    let tempMM = thuocMayMan;
+    for(let l = level + 1; l <= MAX_LEVEL; l++){
+      const tcReq = boost;
+      const mmReq = (l >=10) ? luck : 0;
+      if(tcReq <= tempTC && mmReq <= tempMM){
+        tempTC -= tcReq;
+        tempMM -= mmReq;
+        maxExtraLevel++;
+      } else break;
+    }
+    const suggestedLevel = level + maxExtraLevel;
+    suggestList.push(`${t} - ${buoi}: hiện tại ${level} → gợi ý nâng tối đa ${suggestedLevel}`);
+  });
+
+  // Tính điểm và làm tròn
+  const diemTC = Math.round(totalTCUsed * 2.8);
+  const diemMM = Math.round(totalMMUsed * 28);
+  const diemThu = Math.round(thuocThu * 70);
+  const tongDiem = diemTC + diemMM + diemThu;
+
+  // Hiển thị bảng tổng kết
+  document.getElementById("summaryDetail").innerHTML = `
+    Thuốc tăng cường: ${diemTC} điểm<br>
+    Thuốc may mắn: ${diemMM} điểm<br>
+    Thuốc thử ánh sáng: ${diemThu} điểm<br>
+    <b>Tổng điểm: ${tongDiem}</b>
+  `;
+
+  // Hiển thị gợi ý nâng
+  const ul = document.getElementById("suggestList");
+  ul.innerHTML = "";
+  suggestList.forEach(item=>{
+    const li = document.createElement("li");
+    li.textContent = item;
+    ul.appendChild(li);
+  });
+
+  // send total to parent
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({type:'updatePoint', tab:'witch', value: tongDiem}, "*");
+    }
+  } catch(e){}
+}
+</script>
+
+</body>
+</html>
