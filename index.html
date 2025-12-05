@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Tổng Hợp</title>
+<style>
+    body { margin: 0; font-family: Inter, sans-serif; background: #f3f4f6; }
+    .menu { display:flex; gap:10px; background:white; padding:12px; border-bottom:1px solid #ddd; position:sticky; top:0; z-index:1000; }
+    .menu-btn { padding:10px 18px; border-radius:8px; font-weight:600; cursor:pointer; color:#374151; border:1px solid transparent; transition:0.15s; }
+    .menu-btn:hover { background:#e5e7eb; }
+    .menu-btn.active { background:#2563eb; color:white; border-color:#1d4ed8; }
+    .tab-page { display:none; padding:0; }
+    .tab-page.active { display:block; }
+    iframe { width:100%; min-height: calc(100vh - 70px); border:none; background:white; }
+    .total-container { max-width:700px; margin:20px auto; background:white; padding:24px; border-radius:16px; box-shadow:0 3px 12px rgba(0,0,0,0.08); }
+    .point-row { padding:14px 0; font-size:18px; display:flex; justify-content:space-between; border-bottom:1px solid #ddd; }
+    .point-row:last-child { border-bottom:none; font-weight:700; font-size:20px; }
+</style>
+</head>
+<body>
+
+<div class="menu">
+    <div class="menu-btn active" data-tab="phao">🔥 Pháo</div>
+    <div class="menu-btn" data-tab="tuong">🛡️ Tướng</div>
+    <div class="menu-btn" data-tab="witch">🔮 Witch</div>
+    <div class="menu-btn" data-tab="tong">⭐ Tổng điểm</div>
+</div>
+
+<div class="tab-page active" id="tab-phao">
+    <iframe id="iframePhao" src="phao.html"></iframe>
+</div>
+
+<div class="tab-page" id="tab-tuong">
+    <iframe id="iframeTuong" src="tuong.html"></iframe>
+</div>
+
+<div class="tab-page" id="tab-witch">
+    <iframe id="iframeWitch" src="witch.html"></iframe>
+</div>
+
+<div class="tab-page" id="tab-tong">
+    <div class="total-container">
+        <h2 style="text-align:center; margin-bottom:20px;">Tổng điểm</h2>
+        <div class="point-row"><span>🔥 Điểm Pháo</span><span id="pPhao">0</span></div>
+        <div class="point-row"><span>🛡️ Điểm Tướng</span><span id="pTuong">0</span></div>
+        <div class="point-row"><span>🔮 Điểm Witch</span><span id="pWitch">0</span></div>
+        <div class="point-row" style="font-size:22px;"><span>⭐ TỔNG TẤT CẢ</span><span id="pTong">0</span></div>
+    </div>
+</div>
+
+<script>
+const btns = document.querySelectorAll(".menu-btn");
+btns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        btns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const tab = btn.dataset.tab;
+        document.querySelectorAll(".tab-page").forEach(t => t.classList.remove("active"));
+        document.getElementById("tab-" + tab).classList.add("active");
+    });
+});
+
+let diemPhao = 0, diemTuong = 0, diemWitch = 0;
+window.addEventListener("message", e => {
+    try {
+        const d = e.data;
+        if (d && d.type === "updatePoint") {
+            if (d.tab === "phao") diemPhao = Number(d.value) || 0;
+            if (d.tab === "tuong") diemTuong = Number(d.value) || 0;
+            if (d.tab === "witch") diemWitch = Number(d.value) || 0;
+            updateTong();
+        }
+    } catch(err) { console.warn(err); }
+});
+function updateTong() {
+    document.getElementById("pPhao").textContent = diemPhao.toLocaleString("vi-VN");
+    document.getElementById("pTuong").textContent = diemTuong.toLocaleString("vi-VN");
+    document.getElementById("pWitch").textContent = diemWitch.toLocaleString("vi-VN");
+    document.getElementById("pTong").textContent = (diemPhao + diemTuong + diemWitch).toLocaleString("vi-VN");
+}
+</script>
+
+</body>
+</html>
