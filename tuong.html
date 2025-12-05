@@ -5,19 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Điểm tướng SSR & Exp</title>
 <style>
-:root{
-  --bg:#ffffff;
-  --card:#f8f8f8;
-  --muted:#555555;
-  --accent:#60a5fa;
-  --fire:#e11d48;
-  --water:#0284c7;
-  --wind:#10b981;
-  --light:#facc15;
-  --dark:#6366f1;
-  --earth:#a16207;
-  --exp:#6b7280;
-}
+:root{--bg:#ffffff;--card:#f8f8f8;--muted:#555555;--accent:#60a5fa;--fire:#e11d48;--water:#0284c7;--wind:#10b981;--light:#facc15;--dark:#6366f1;--earth:#a16207;--exp:#6b7280;}
 body{margin:0;padding:18px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:var(--bg);color:#012;}
 .app{max-width:1100px;margin:0 auto;}
 header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px;}
@@ -44,22 +32,13 @@ footer{margin-top:16px;color:var(--muted);font-size:13px;text-align:center;}
 .modal-body{padding:18px;font-size:16px;line-height:1.5;white-space:pre-line;}
 .modal-footer{padding:16px;}
 .modal-footer button{width:100%;padding:12px;background:var(--m-color);color:white;border:none;border-radius:10px;font-size:16px;cursor:pointer;}
-.sys-Lửa{--m-color:var(--fire);} 
-.sys-Cung{--m-color:var(--light);} 
-.sys-Độc{--m-color:var(--wind);} 
-.sys-Băng{--m-color:var(--water);} 
-.sys-Exp{--m-color:var(--exp);}
+.sys-Lửa{--m-color:var(--fire);} .sys-Cung{--m-color:var(--light);} .sys-Độc{--m-color:var(--wind);} .sys-Băng{--m-color:var(--water);} .sys-Exp{--m-color:var(--exp);}
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <div>
-      <h1>Điểm tướng SSR & Exp</h1>
-      <div style="color:var(--muted);font-size:13px;margin-top:6px">
-        Chỉ hiện kết quả khi bấm "Tính". 1 thẻ SSR = 14.000 điểm. EXP: B+ 100 / B 700 / SR 3.500.
-      </div>
-    </div>
+    <div><h1>Điểm tướng SSR & Exp</h1><div style="color:var(--muted);font-size:13px;margin-top:6px">Chỉ hiện kết quả khi bấm "Tính". 1 thẻ SSR = 14.000 điểm. EXP: B+ 100 / B 700 / SR 3.500.</div></div>
     <div class="controls"><div class="tabs" id="tabs"></div></div>
   </header>
   <main class="grid">
@@ -68,9 +47,7 @@ footer{margin-top:16px;color:var(--muted);font-size:13px;text-align:center;}
         <div><strong id="systemTitle">Lửa</strong></div>
         <div class="flex"><button class="btn" id="btnCalcAll">Tính toàn bộ</button></div>
       </div>
-      <div style="margin-bottom:12px;display:flex;gap:10px">
-        <input id="filterHero" placeholder="Tìm tướng theo tên" />
-      </div>
+      <div style="margin-bottom:12px;display:flex;gap:10px"><input id="filterHero" placeholder="Tìm tướng theo tên" /></div>
       <div class="hero-list" id="heroList"></div>
     </section>
     <aside class="panel">
@@ -81,28 +58,22 @@ footer{margin-top:16px;color:var(--muted);font-size:13px;text-align:center;}
   <footer>Dữ liệu tự lưu trên trình duyệt.</footer>
 </div>
 
-<div id="resultModal" class="modal">
-  <div id="modalBox" class="modal-content">
-    <div id="modalHeader" class="modal-header">Kết quả</div>
-    <div id="modalBody" class="modal-body"></div>
-    <div class="modal-footer"><button onclick="closeModal()">Đóng</button></div>
-  </div>
-</div>
+<div id="resultModal" class="modal"><div id="modalBox" class="modal-content"><div id="modalHeader" class="modal-header">Kết quả</div><div id="modalBody" class="modal-body"></div><div class="modal-footer"><button onclick="closeModal()">Đóng</button></div></div></div>
 
 <script>
-const COST_ARRAY = {0:[20,20],1:[30,40,50],2:[60,70,80,80],3:[100,110,120,130,140],4:[170,180,190,200,210],5:[]};
-const CARD_POINT = 14000;
-const SYSTEMS = ["Lửa","Cung","Độc","Băng"];
-const EXP_CATS = {"B+":100,"B":700,"SR":3500};
-const heroesData = {
-  "Lửa":["Dolvar","Paul","Alex","Allen","Anko","Apollo","Blaise","Brie","Catrina","Christie","Cosette","Dain","Darcy","Daria","Dean","Edmund","Erika","Fiona","Gisele","Gro","Ivy","Kenshiro","Kirona","Kyle","Lovelace","Mirai","Penny","Seraphin","Simon","Sindra","Theodore","Tracy","Vanessa","Wallis"],
-  "Cung":["Aidan","Alden","Ariza","Authur","Bella","Colin","Doris","Dylan","Eleanora","Fatima","Gabriel","Green","Jennifer","Johannes","Kadir","Kailin","Layla","Livia","Maya","Meg","Mira","Montag","O'Neil","Padme","Pan","Ptolemy","Richard","Ryan","Sahar","Sebastian","Seraphia","Solder","Torvi","Trist"],
-  "Độc":["Allison","Angelina","Arwin","Benjamin","Blackwell","Boudica","Catherine","Chiyoko","Claudia","Daisy","Elia","Gruen","Issac","Lilith","Lomax","Luvia","Maxwell","Meniere","Morgana","Mycelia","Naga","Pythia","Rila","Rogers","Rosamond","Suad","Tumnus","Viper","Viola","Webster","Wendy"],
-  "Băng":["Aurora","Christine","Clarence","Enzo","Eslaine","Filius","Hadi","Hana","Hathes","Havik","Jessica","Judy","Keith","Lilani","Loka","Maud","Nathaniel","Nicole","Nina","Nivea","Olaf","Parr","Paula","Pedra","Ralph","Rebecca","Rudolph","Selene","Trishy","Vera","Ao Deng","Ao Yue"]
+const COST_ARRAY={0:[20,20],1:[30,40,50],2:[60,70,80,80],3:[100,110,120,130,140],4:[170,180,190,200,210],5:[]};
+const CARD_POINT=14000;
+const SYSTEMS=["Lửa","Cung","Độc","Băng"];
+const EXP_CATS={"B+":100,"B":700,"SR":3500};
+const heroesData={
+"Lửa":["Dolvar","Paul","Alex","Allen","Anko","Apollo","Blaise","Brie","Catrina","Christie","Cosette","Dain","Darcy","Daria","Dean","Edmund","Erika","Fiona","Gisele","Gro","Ivy","Kenshiro","Kirona","Kyle","Lovelace","Mirai","Penny","Seraphin","Simon","Sindra","Theodore","Tracy","Vanessa","Wallis"],
+"Cung":["Aidan","Alden","Ariza","Authur","Bella","Colin","Doris","Dylan","Eleanora","Fatima","Gabriel","Green","Jennifer","Johannes","Kadir","Kailin","Layla","Livia","Maya","Meg","Mira","Montag","O'Neil","Padme","Pan","Ptolemy","Richard","Ryan","Sahar","Sebastian","Seraphia","Solder","Torvi","Trist"],
+"Độc":["Allison","Angelina","Arwin","Benjamin","Blackwell","Boudica","Catherine","Chiyoko","Claudia","Daisy","Elia","Gruen","Issac","Lilith","Lomax","Luvia","Maxwell","Meniere","Morgana","Mycelia","Naga","Pythia","Rila","Rogers","Rosamond","Suad","Tumnus","Viper","Viola","Webster","Wendy"],
+"Băng":["Aurora","Christine","Clarence","Enzo","Eslaine","Filius","Hadi","Hana","Hathes","Havik","Jessica","Judy","Keith","Lilani","Loka","Maud","Nathaniel","Nicole","Nina","Nivea","Olaf","Parr","Paula","Pedra","Ralph","Rebecca","Rudolph","Selene","Trishy","Vera","Ao Deng","Ao Yue"]
 };
-const expList = {"B+":["Daniel"],"B":["Anton","Peter","Etley"],"SR":["Alucard","Samar","Harold","Kris","Merlin","Ophelia","Arwyn"]};
+const expList={"B+":["Daniel"],"B":["Anton","Peter","Etley"],"SR":["Alucard","Samar","Harold","Kris","Merlin","Ophelia","Arwyn"]};
 
-const LS_KEY="hero_upgrader_state_v2";
+const LS_KEY="hero_upgrader_state_v3";
 const $=id=>document.getElementById(id);
 let state={heroes:[],activeTab:SYSTEMS[0]};
 
@@ -110,63 +81,38 @@ function idNow(){return "h-"+Math.random().toString(36).slice(2,9);}
 function formatNumber(n){return Number(n).toLocaleString("vi-VN");}
 function maxBarForStar(st){return (COST_ARRAY[st]||[]).length;}
 function costFor(st,bar){return (COST_ARRAY[st]||[])[bar]||null;}
-function defaultHeroData(name,system){
-  let sys = system;
-  let exp_rank = null;
-  for(const cat in expList) if(expList[cat].includes(name)){ sys="Exp"; exp_rank=cat; break; }
-  return {id:idNow(), name, system:sys, exp_rank:exp_rank, current_star:0, current_bar:0, cards_owned:0};
-}
+function defaultHeroData(name,system,rank=null){return {id:idNow(),name,system:system,exp_rank:rank,current_star:0,current_bar:0,cards_owned:0};}
 
-function calculateUpgrade(hero){
-  if(hero.system==="Exp"){
-    const per = hero.exp_rank ? EXP_CATS[hero.exp_rank] : 0;
-    const cards = Number(hero.cards_owned)||0;
-    return {isExp:true,exp_rank:hero.exp_rank,exp_per_card:per,exp_points:cards*per,cards_consumed:cards,cards_left:0,final_star:0,final_bar:0,missing_to_5:0};
-  }
-  let star=hero.current_star||0, bar=hero.current_bar||0, cards=hero.cards_owned||0, consumed=0;
-  while(cards>0){
-    if(star>=5) break;
-    const maxBar=maxBarForStar(star);
-    if(bar>=maxBar){ star++; bar=0; continue; }
-    const needed=costFor(star,bar);
-    if(needed===null) break;
-    if(cards>=needed){ cards-=needed; consumed+=needed; bar++; } else break;
-  }
-  const cards_left=cards;
-  let ms=0,s=star,b=bar;
-  while(s<5){
-    const maxBar=maxBarForStar(s);
-    if(b>=maxBar){ s++; b=0; continue;}
-    const need=costFor(s,b);
-    if(need===null){ ms=Infinity; break; }
-    ms+=need; b++;
-  }
-  return {isExp:false,final_star:star,final_bar:bar,cards_consumed:consumed,cards_left:cards_left,missing_to_5:ms};
+function loadState(){
+  state.heroes=[];
+  SYSTEMS.forEach(s=>{ heroesData[s].forEach(n=>{state.heroes.push(defaultHeroData(n,s));});});
+  for(const cat in expList) expList[cat].forEach(n=>{state.heroes.push(defaultHeroData(n,"Exp",cat));});
+  state.activeTab=SYSTEMS[0];
 }
 
 function createHeroElement(h){
   const box=document.createElement("div"); box.className="hero";
-  const cls = h.system==="Lửa"?"fire":h.system==="Cung"?"cung":h.system==="Độc"?"độc":h.system==="Băng"?"băng":"exp"; box.classList.add(cls);
-
+  let cls=h.system==="Lửa"?"fire":h.system==="Cung"?"cung":h.system==="Độc"?"độc":h.system==="Băng"?"băng":"exp"; box.classList.add(cls);
   const nameCol=document.createElement("div"); nameCol.innerHTML=`<div style="font-weight:600">${h.name}</div><small>${h.system}${h.system==="Exp"?" "+h.exp_rank:""}</small>`;
   const starCol=document.createElement("div"); const starSel=document.createElement("select");
   starSel.innerHTML=Array.from({length:6}).map((_,i)=>`<option value="${i}" ${i===h.current_star?'selected':''}>${i}★</option>`).join("");
-  starSel.onchange=()=>{ h.current_star=parseInt(starSel.value,10); if(h.current_bar>maxBarForStar(h.current_star)) h.current_bar=maxBarForStar(h.current_star); saveState(); renderSummary(); };
+  starSel.onchange=()=>{h.current_star=parseInt(starSel.value,10); renderHeroList();};
   starCol.appendChild(starSel);
 
-  const barCol=document.createElement("div"); const barSel=document.createElement("select"); 
+  const barCol=document.createElement("div"); const barSel=document.createElement("select");
   const maxBar=maxBarForStar(h.current_star);
   barSel.innerHTML=Array.from({length:maxBar+1}).map((_,i)=>`<option value="${i}" ${i===h.current_bar?'selected':''}>Bậc ${i}</option>`).join("");
-  barSel.onchange=()=>{ h.current_bar=parseInt(barSel.value,10); saveState(); renderSummary(); }; barCol.appendChild(barSel);
+  barSel.onchange=()=>{h.current_bar=parseInt(barSel.value,10);};
+  barCol.appendChild(barSel);
 
   const cardCol=document.createElement("div"); const cardsInput=document.createElement("input");
   cardsInput.type="number"; cardsInput.min=0; cardsInput.value=h.cards_owned||0;
-  cardsInput.onchange=()=>{ h.cards_owned=Math.max(0,Math.floor(Number(cardsInput.value)||0)); saveState(); };
+  cardsInput.onchange=()=>{h.cards_owned=Math.max(0,Math.floor(Number(cardsInput.value)||0));};
   cardCol.appendChild(cardsInput);
 
   const opsCol=document.createElement("div"); opsCol.className="hero-ops";
-  const calcBtn=document.createElement("button"); calcBtn.className="btn ghost"; calcBtn.textContent="Tính"; 
-  calcBtn.onclick=()=>showModalResult(h); opsCol.appendChild(calcBtn);
+  const calcBtn=document.createElement("button"); calcBtn.className="btn ghost"; calcBtn.textContent="Tính";
+  opsCol.appendChild(calcBtn);
 
   box.appendChild(nameCol); box.appendChild(starCol); box.appendChild(barCol); box.appendChild(cardCol); box.appendChild(opsCol);
   return box;
@@ -174,19 +120,26 @@ function createHeroElement(h){
 
 function renderHeroList(){
   const list=$("heroList"); list.innerHTML="";
-  const filter=($("filterHero").value||"").trim().toLowerCase();
+  const f=($("filterHero").value||"").toLowerCase();
   state.heroes.forEach(h=>{
     if(SYSTEMS.includes(state.activeTab) && h.system!==state.activeTab) return;
     if(!SYSTEMS.includes(state.activeTab) && (h.system!=="Exp" || h.exp_rank!==state.activeTab)) return;
-    if(filter && !h.name.toLowerCase().includes(filter)) return;
+    if(f && !h.name.toLowerCase().includes(f)) return;
     list.appendChild(createHeroElement(h));
   });
 }
 
-// ... (giữ nguyên renderSummary(), saveState(), loadState(), renderTabs() và messaging như trước)
+function renderTabs(){
+  const tabs=$("tabs"); tabs.innerHTML="";
+  SYSTEMS.concat(Object.keys(expList)).forEach(s=>{
+    const t=document.createElement("div"); t.className="tab"+(state.activeTab===s?" active":""); t.textContent=s;
+    t.onclick=()=>{state.activeTab=s; renderTabs(); renderHeroList(); $("systemTitle").innerText=s;};
+    tabs.appendChild(t);
+  });
+}
 
 // Khởi tạo
-loadState(); renderTabs(); renderHeroList(); renderSummary();
+loadState(); renderTabs(); renderHeroList();
 </script>
 </body>
 </html>
