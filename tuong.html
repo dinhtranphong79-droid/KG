@@ -72,7 +72,6 @@ const heroesData = {
   "Băng": ["Aurora","Christine","Clarence","Enzo","Eslaine","Filius","Hadi","Hana","Hathes","Havik","Jessica","Judy","Keith","Lilani","Loka","Maud","Nathaniel","Nicole","Nina","Nivea","Olaf","Parr","Paula","Pedra","Ralph","Rebecca","Rudolph","Selene","Trishy","Vera","Ao Deng","Ao Yue"]
 };
 const expList = { "B+": ["Daniel"], "B": ["Anton","Peter","Etley"], "SR": ["Alucard","Samar","Harold","Kris","Merlin","Ophelia","Arwyn"]};
-
 const LS_KEY_PREFIX = "acc_";
 const $ = id=>document.getElementById(id);
 let state={heroes:[],activeTab:SYSTEMS[0]};
@@ -140,7 +139,39 @@ function renderSummary(){
   const totalRow=document.createElement("div"); totalRow.className="row"; totalRow.style.borderTop="1px solid #ccc"; totalRow.style.fontWeight="700"; totalRow.innerHTML=`<span>Tổng điểm</span><span class="big">${formatNumber(grandTotal)}</span>`; box.appendChild(totalRow);
   try{ parent.postMessage({type:'updatePoint', tab:'tuong', value: grandTotal}, "*"); } catch(e){}
 }
+  // Dòng tổng điểm
+  const totalRow = document.createElement("div");
+  totalRow.className = "row";
+  totalRow.style.borderTop = "1px solid #ccc";
+  totalRow.style.fontWeight = "700";
+  totalRow.innerHTML = `<span>Tổng điểm</span><span class="big">${formatNumber(grandTotal)}</span>`;
+  box.appendChild(totalRow);
+}
 
+function renderTabs(){
+  const tabs=$("tabs"); tabs.innerHTML="";
+  SYSTEMS.concat(Object.keys(expList)).forEach(s=>{
+    const t=document.createElement("div"); t.className="tab"+(state.activeTab===s?" active":""); t.textContent=s;
+    const color=s==="Lửa"?"var(--fire)":s==="Cung"?"var(--light)":s==="Độc"?"var(--wind)":s==="Băng"?"var(--water)":"var(--exp)";
+    if(state.activeTab===s){ t.style.background=color; t.style.color="#fff"; t.style.fontWeight="600"; } else { t.style.background="#eaeaea"; t.style.color="var(--muted)"; t.style.fontWeight="400"; }
+    t.onclick=()=>{ state.activeTab=s; saveState(); renderTabs(); renderHeroList(); $("systemTitle").innerText=s; };
+    tabs.appendChild(t);
+  });
+}
+
+function saveState(){ localStorage.setItem(LS_KEY,JSON.stringify(state)); }
+function loadState(){
+  const data=localStorage.getItem(LS_KEY);
+  if(data){ state=JSON.parse(data);} 
+  SYSTEMS.concat(Object.keys(expList)).forEach(s=>{ (heroesData[s]||[]).forEach(n=>{ if(!state.heroes.find(h=>h.name===n)) state.heroes.push(defaultHeroData(n,s)); }); });
+  for(const cat in expList) expList[cat].forEach(n=>{ if(!state.heroes.find(h=>h.name===n)) state.heroes.push(defaultHeroData(n,"Exp")); });
+  saveState();
+}
+
+$("filterHero").oninput=renderHeroList;
+$("btnCalcAll").onclick=()=>{renderSummary();};
+
+loadState(); renderTabs(); renderHeroList(); renderSummary();
 /* account save/load */
 let currentAcc = localStorage.getItem("current_acc") || "";
 function heroKey(acc){ return "acc_" + acc + "_hero"; }
