@@ -130,6 +130,7 @@ function createHeroElement(h){
   box.appendChild(nameCol); box.appendChild(starCol); box.appendChild(barCol); box.appendChild(cardCol); box.appendChild(opsCol);
   return box;
 }
+loadState();
 
 function renderHeroList(){
   const list=$("heroList"); list.innerHTML=""; const f=($("filterHero").value||"").trim().toLowerCase();
