@@ -1,174 +1,44 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Web Tổng Hợp - Accounts</title>
-<style>
-body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial;background:#f3f4f6}
-.header{display:flex;align-items:center;gap:12px;padding:12px;background:#fff;border-bottom:1px solid #ddd;position:sticky;top:0;z-index:100}
-.menu-btn{padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;color:#374151;border:1px solid transparent}
-.menu-btn.active{background:#2563eb;color:#fff;border-color:#1d4ed8}
-.spacer{flex:1}
-select,input{padding:6px 10px;border-radius:6px;border:1px solid #ccc}
-.add-btn{padding:6px 10px;border-radius:6px;background:#10b981;color:#fff;border:none;cursor:pointer}
-.tab-page{display:none}
-.tab-page.active{display:block}
-iframe{width:100%;min-height:calc(100vh - 70px);border:0;background:#fff}
-.total-container{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,0.06)}
-.point-row{display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #eee;font-size:18px}
-.point-row.total{font-weight:700;font-size:20px;border-bottom:none}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center}
-.modal .box{background:#fff;padding:18px;border-radius:10px;min-width:320px}
-.small{font-size:13px;color:#666;margin-top:6px}
-</style>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dolvar Tools — Full App (from code.docx)</title>
+<link rel="stylesheet" href="style.css">
+<!-- Firebase compat SDK (v9 compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="firebase.js"></script>
 </head>
 <body>
-
-<div class="header">
-  <div id="tabP" class="menu-btn active" data-tab="phao">🔥 Pháo</div>
-  <div id="tabT" class="menu-btn" data-tab="tuong">🛡️ Tướng</div>
-  <div id="tabW" class="menu-btn" data-tab="witch">🔮 Witch</div>
-  <div id="tabS" class="menu-btn" data-tab="tong">⭐ Tổng điểm</div>
-
-  <div class="spacer"></div>
-
-  <label for="accSelect">Tài khoản</label>
-  <select id="accSelect" style="min-width:180px"></select>
-  <button class="add-btn" id="btnAdd">+ Thêm</button>
-  <div style="width:12px"></div>
-  <button id="btnSwitch" style="padding:6px 10px;border-radius:6px;background:#2563eb;color:#fff;border:none;cursor:pointer">Chọn</button>
-</div>
-
-<!-- Tabs -->
-<div id="page-phao" class="tab-page active"><iframe id="iframeP" src="phao.html"></iframe></div>
-<div id="page-tuong" class="tab-page"><iframe id="iframeT" src="tuong.html"></iframe></div>
-<div id="page-witch" class="tab-page"><iframe id="iframeW" src="witch.html"></iframe></div>
-
-<div id="page-tong" class="tab-page">
-  <div class="total-container">
-    <h2 style="text-align:center">Tổng điểm</h2>
-    <div class="point-row"><span>🔥 Điểm Pháo</span><span id="pPhao">0</span></div>
-    <div class="point-row"><span>🛡️ Điểm Tướng</span><span id="pTuong">0</span></div>
-    <div class="point-row"><span>🔮 Điểm Witch</span><span id="pWitch">0</span></div>
-    <div class="point-row total"><span>⭐ Tổng</span><span id="pTong">0</span></div>
-    <div class="small">Chọn tài khoản để hiển thị điểm tương ứng. Điểm được lưu tự động theo từng tài khoản.</div>
+<header class="topbar">
+  <div class="logo">Dolvar Tools</div>
+  <div class="auth" id="authArea">
+    <input id="email" type="email" placeholder="email" />
+    <input id="password" type="password" placeholder="password" />
+    <button id="btnLogin">Đăng nhập</button>
+    <button id="btnLogout" style="display:none">Đăng xuất</button>
+    <span id="who" class="who"></span>
   </div>
-</div>
+</header>
 
-<!-- Add account modal -->
-<div id="modal" class="modal"><div class="box">
-  <h3>Thêm tài khoản mới</h3>
-  <input id="newAcc" placeholder="Nhập tên tài khoản" style="width:100%;margin-top:8px"/>
-  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-    <button id="btnCancel" style="padding:6px 10px;border-radius:6px;border:1px solid #ccc;background:#fff">Hủy</button>
-    <button id="btnSaveAcc" style="padding:6px 10px;border-radius:6px;background:#10b981;color:#fff;border:none">Lưu</button>
-  </div>
-</div></div>
+<nav id="nav"></nav>
 
-<script>
-const DEFAULT_ACCOUNTS = ["minhlannè","minhlannhỏ","Dolvar","DolvarAsh","DolvarAegis","DolvarReign","DolvarReaper","DolvarTroth","DolvarBasion"];
-const ACC_LIST_KEY = "acc_list_v1";
-let accounts = JSON.parse(localStorage.getItem(ACC_LIST_KEY) || 'null') || DEFAULT_ACCOUNTS.slice();
-localStorage.setItem(ACC_LIST_KEY, JSON.stringify(accounts));
+<main id="main"></main>
 
-const accSelect = document.getElementById("accSelect");
-const modal = document.getElementById("modal");
-const newAccInput = document.getElementById("newAcc");
-let currentAcc = localStorage.getItem("current_acc") || accounts[0];
-let points = {phao:0, tuong:0, witch:0};
+<footer class="footer">Prototype — dữ liệu lưu trên Firestore (project: dolvar-7cc8e)</footer>
 
-function refreshAccountUI(){
-    accSelect.innerHTML = "";
-    accounts.forEach(a=>{
-        const opt = document.createElement("option"); opt.value = a; opt.textContent = a;
-        accSelect.appendChild(opt);
-    });
-    accSelect.value = currentAcc || accounts[0];
-}
-refreshAccountUI();
+<script src="ui.js"></script>
+<script src="auth.js"></script>
+<script src="tabs/cannon.js"></script>
+<script src="tabs/thienphu.js"></script>
+<script src="tabs/phuthuy.js"></script>
+<script src="tabs/bua.js"></script>
+<script src="tabs/rong.js"></script>
+<script src="tabs/hero.js"></script>
+<script src="tabs/tongdiem.js"></script>
+<script src="tabs/account.js"></script>
 
-document.getElementById("btnAdd").addEventListener("click", ()=>{ modal.style.display = "flex"; newAccInput.value=""; newAccInput.focus(); });
-document.getElementById("btnCancel").addEventListener("click", ()=>{ modal.style.display = "none"; });
-document.getElementById("btnSaveAcc").addEventListener("click", ()=>{
-    const name = newAccInput.value.trim();
-    if(!name) return alert("Nhập tên tài khoản");
-    if(accounts.includes(name)) return alert("Tài khoản đã tồn tại");
-    accounts.push(name);
-    localStorage.setItem(ACC_LIST_KEY, JSON.stringify(accounts));
-    modal.style.display = "none";
-    currentAcc = name;
-    localStorage.setItem("current_acc", currentAcc);
-    refreshAccountUI();
-    broadcastAccChange();
-});
-
-document.getElementById("btnSwitch").addEventListener("click", ()=>{
-    const sel = accSelect.value;
-    if(!sel) return;
-    currentAcc = sel;
-    localStorage.setItem("current_acc", currentAcc);
-    broadcastAccChange();
-    alert("Đã chọn tài khoản: " + currentAcc);
-});
-
-/* tabs switching */
-const tabs = document.querySelectorAll(".menu-btn");
-tabs.forEach(t=>t.addEventListener("click", ()=>{
-    tabs.forEach(x=>x.classList.remove("active"));
-    t.classList.add("active");
-    document.querySelectorAll(".tab-page").forEach(p=>p.classList.remove("active"));
-    document.getElementById("page-" + t.dataset.tab).classList.add("active");
-}));
-
-/* messaging with iframes */
-const ifrP = document.getElementById("iframeP");
-const ifrT = document.getElementById("iframeT");
-const ifrW = document.getElementById("iframeW");
-
-function broadcastAccChange(){
-    const msg = {type:"acc_changed", acc: currentAcc};
-    try { ifrP.contentWindow.postMessage(msg, "*"); } catch(e){}
-    try { ifrT.contentWindow.postMessage(msg, "*"); } catch(e){}
-    try { ifrW.contentWindow.postMessage(msg, "*"); } catch(e){}
-    setTimeout(()=> {
-        try { ifrP.contentWindow.postMessage({type:"request_point"}, "*"); } catch(e){}
-        try { ifrT.contentWindow.postMessage({type:"request_point"}, "*"); } catch(e){}
-        try { ifrW.contentWindow.postMessage({type:"request_point"}, "*"); } catch(e){}
-    }, 300);
-}
-
-window.addEventListener("message", e=>{
-    const d = e.data || {};
-    if(d && d.type === "updatePoint" && typeof d.tab === "string"){
-        points[d.tab] = Number(d.value) || 0;
-        updateTotalsInUI();
-        try { localStorage.setItem("acc_" + currentAcc + "_points", JSON.stringify(points)); } catch(e){}
-    }
-    if(d && d.type === "ready"){
-        try { e.source.postMessage({type:"acc_changed", acc: currentAcc}, "*"); } catch(e){}
-        try { e.source.postMessage({type:"request_point"}, "*"); } catch(e){}
-    }
-});
-
-function restorePointsForAcc(){
-    const raw = localStorage.getItem("acc_" + currentAcc + "_points");
-    if(raw){
-        try { points = JSON.parse(raw); } catch(e){ points = {phao:0,tuong:0,witch:0}; }
-    } else { points = {phao:0,tuong:0,witch:0}; }
-    updateTotalsInUI();
-}
-function updateTotalsInUI(){
-    document.getElementById("pPhao").textContent = (points.phao||0).toLocaleString("vi-VN");
-    document.getElementById("pTuong").textContent = (points.tuong||0).toLocaleString("vi-VN");
-    document.getElementById("pWitch").textContent = (points.witch||0).toLocaleString("vi-VN");
-    document.getElementById("pTong").textContent = ((points.phao||0)+(points.tuong||0)+(points.witch||0)).toLocaleString("vi-VN");
-}
-
-window.addEventListener("load", ()=>{
-    restorePointsForAcc();
-    broadcastAccChange();
-});
-</script>
 </body>
 </html>
