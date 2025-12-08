@@ -195,7 +195,10 @@
 
     });
   });
-// đặt trước dấu `})();`
-window.dispatchEvent(new CustomEvent('tab.open', { detail: { id: 'phao' } }));
+document.addEventListener('DOMContentLoaded', ()=>{
+  window.dispatchEvent(new CustomEvent('tab.open', { detail: { id: 'phao' } }));
+});
+
 })();
+
 
