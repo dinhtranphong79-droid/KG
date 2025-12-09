@@ -58,7 +58,7 @@
     return {maxLv:lo, log:lastLog, remaining:lastRemain};
   }
 
-  // ----------- 🔥 MỤC TIÊU TÀI KHOẢN MINHLANNE -------------
+  // ----------- MỤC TIÊU MINHLANNE -------------
   async function applyCannonGoal(user,gainedLv){
     if(!user || !user.email.toLowerCase().includes("minhlanne")) return;
 
@@ -79,7 +79,7 @@
     return remaining;
   }
 
-  // ----------- 🔥 LOAD DATA USER -------------
+  // ----------- LOAD DỮ LIỆU NGƯỜI DÙNG -------------
   async function loadSavedInputs(user){
     if(!user) return {};
     let doc = await db.collection("users")
@@ -115,12 +115,13 @@
       </div>
 
       <style>
-        .cannon-container{padding:20px;background:#fff;border-radius:10px;max-width:480px;margin:auto;}
-        .input-column{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+        .cannon-container{padding:20px;background:#fff;border-radius:12px;max-width:480px;margin:auto;}
+        .input-column{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;}
         label{font-weight:600;color:#333;display:flex;flex-direction:column;}
-        input{padding:6px;border-radius:6px;border:1px solid #ccc;}
-        button.primary{width:100%;padding:10px;background:#4a90e2;color:white;border:none;border-radius:6px;margin-bottom:15px;}
-        .result{padding:10px;border:1px solid #ddd;border-radius:6px;margin-top:10px;white-space:pre-wrap;}
+        input{padding:8px;border-radius:8px;border:1px solid #ccc;font-size:14px;}
+        button.primary{width:100%;padding:12px;background:#4a90e2;color:white;border:none;border-radius:8px;margin-bottom:15px;font-size:16px;cursor:pointer;transition:0.2s;}
+        button.primary:hover{background:#3571d3;}
+        .result{padding:12px;border:1px solid #ddd;border-radius:8px;margin-top:12px;white-space:pre-wrap;font-size:14px;}
       </style>
     `;
 
@@ -150,19 +151,20 @@
         let r=simulateOptimal(S,W,Q,B,t);
         if(r.ok){
           gainedLv=t; finalLv=t;
-          out.innerHTML=`Cấp đạt được: ${t}\nĐiểm: ${t*556}\n\n${r.log.join("\n")}\n\nCòn lại: đá ${r.remaining.stone}, gỗ ${r.remaining.wood}, quặng ${r.remaining.ore}`;
+          out.innerHTML=`Cấp đạt được: ${t}\nĐiểm: ${t*556}\n\nCác bước đổi:\n${r.log.join("\n")}\n\nCòn lại:\n- Đá: ${r.remaining.stone}\n- Gỗ: ${r.remaining.wood}\n- Quặng: ${r.remaining.ore}`;
         } else {
-          out.innerHTML=`❌ Thiếu tài nguyên để đạt cấp ${t}\nThiếu: Đá ${r.missing.stone}, Gỗ ${r.missing.wood}, Quặng ${r.missing.ore}`;
+          out.innerHTML=`❌ Thiếu tài nguyên để đạt cấp ${t}\nCòn thiếu:\n- Đá: ${r.missing.stone}\n- Gỗ: ${r.missing.wood}\n- Quặng: ${r.missing.ore}`;
         }
       } else {
         let r=computeMaxLv(S,W,Q,B);
         gainedLv=r.maxLv; finalLv=r.maxLv;
-        out.innerHTML=`Cấp tối đa: ${r.maxLv}\nĐiểm: ${r.maxLv*556}\n\n${r.log.join("\n")}`;
+        out.innerHTML=`Cấp tối đa: ${r.maxLv}\nĐiểm: ${r.maxLv*556}\n\nCác bước đổi:\n${r.log.join("\n")}\n\nCòn lại:\n- Đá: ${r.remaining.stone}\n- Gỗ: ${r.remaining.wood}\n- Quặng: ${r.remaining.ore}`;
       }
 
       out.style.display="block";
       
       if(user){
+        // lưu input + kết quả vào Firestore
         await db.collection("users").doc(user.uid).collection("tabs").doc("cannon").set({
           stone:S, wood:W, ore:Q, boxes:B, targetLevel:targetRaw,
           lastComputedLevel:finalLv,
