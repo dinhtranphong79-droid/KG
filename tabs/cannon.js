@@ -1,57 +1,66 @@
-// cannon.js
-window.addEventListener('tab.open', async (e)=>{
-  if(e.detail.id !== 'phao') return;
+window.addEventListener('tab.open', async (e) => {
+  if(e.detail.id !== 'phao') return; // chỉ chạy khi tab Pháo được chọn
 
   const container = document.getElementById('tab_phao');
   if(!container) return;
 
+  // Render HTML qua JS
   container.innerHTML = `
-    <h2 style="margin-bottom:20px;color:#1e3a8a;">Level Pháo</h2>
-    <div class="input-group" style="margin-bottom:16px;">
-      <label style="font-weight:500;margin-bottom:6px;">Đá</label>
-      <input type="number" id="stone" value="0" min="0" 
-        style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid #cbd5e1;font-size:16px;background:#f8fafc;">
-    </div>
-    <div class="input-group" style="margin-bottom:16px;">
-      <label style="font-weight:500;margin-bottom:6px;">Gỗ</label>
-      <input type="number" id="wood" value="0" min="0"
-        style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid #cbd5e1;font-size:16px;background:#f8fafc;">
-    </div>
-    <div class="input-group" style="margin-bottom:16px;">
-      <label style="font-weight:500;margin-bottom:6px;">Quặng</label>
-      <input type="number" id="ore" value="0" min="0"
-        style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid #cbd5e1;font-size:16px;background:#f8fafc;">
-    </div>
-    <div class="input-group" style="margin-bottom:16px;">
-      <label style="font-weight:500;margin-bottom:6px;">Hộp pháo</label>
-      <input type="number" id="boxes" value="0" min="0"
-        style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid #cbd5e1;font-size:16px;background:#f8fafc;">
-    </div>
-    <div class="input-group" style="margin-bottom:20px;">
-      <label style="font-weight:500;margin-bottom:6px;">Cấp mục tiêu</label>
-      <input type="number" id="targetLevel" value="" min="1" placeholder="Để trống = max"
-        style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid #cbd5e1;font-size:16px;background:#f8fafc;">
-    </div>
-    <button id="btnCompute" 
-      style="width:100%;padding:14px;border-radius:12px;background:#2563eb;color:white;font-size:16px;font-weight:600;border:none;cursor:pointer;margin-bottom:16px;">
-      Tính
-    </button>
-    <div id="output" class="result" style="visibility:hidden;padding:14px;border-radius:12px;border:1px solid #cbd5e1;background:#f1f5f9;word-break:break-word;"></div>
+    <h2>Level pháo</h2>
+    <div class="input-group"><label>Đá</label><input type="number" id="stone" value="0" min="0"></div>
+    <div class="input-group"><label>Gỗ</label><input type="number" id="wood" value="0" min="0"></div>
+    <div class="input-group"><label>Quặng</label><input type="number" id="ore" value="0" min="0"></div>
+    <div class="input-group"><label>Hộp pháo</label><input type="number" id="boxes" value="0" min="0"></div>
+    <div class="input-group"><label>Cấp mục tiêu</label><input type="number" id="targetLevel" placeholder="Để trống = max"></div>
+    <button id="btnCompute">Tính</button>
+    <div id="output" class="result" style="visibility:hidden"></div>
   `;
 
-  // --- JS logic tính toán ---
   const stone = container.querySelector('#stone');
-  const wood = container.querySelector('#wood');
-  const ore = container.querySelector('#ore');
+  const wood  = container.querySelector('#wood');
+  const ore   = container.querySelector('#ore');
   const boxes = container.querySelector('#boxes');
   const targetLevel = container.querySelector('#targetLevel');
   const btnCompute = container.querySelector('#btnCompute');
   const output = container.querySelector('#output');
 
-  const toNum = (el) => {
-    const v = Number(el.value);
-    return isNaN(v) || v<0 ? 0 : v;
+  const user = auth.currentUser;
+  if(!user){
+    output.style.visibility = 'visible';
+    output.innerText = "Chưa đăng nhập, không thể lưu dữ liệu.";
+    return;
   }
+
+  // Firestore reference
+  const cannonRef = db.collection('users').doc(user.uid).collection('tabs').doc('cannon');
+
+  // --- Load dữ liệu từ Firestore ---
+  const doc = await cannonRef.get();
+  if(doc.exists){
+    const data = doc.data();
+    stone.value = data.stone || 0;
+    wood.value  = data.wood || 0;
+    ore.value   = data.ore || 0;
+    boxes.value = data.boxes || 0;
+    targetLevel.value = data.targetLevel || '';
+  }
+
+  // --- Hàm lưu dữ liệu ---
+  function saveCannon(){
+    cannonRef.set({
+      stone: Number(stone.value)||0,
+      wood: Number(wood.value)||0,
+      ore: Number(ore.value)||0,
+      boxes: Number(boxes.value)||0,
+      targetLevel: targetLevel.value
+    });
+  }
+
+  // --- Lắng nghe thay đổi input để auto-save ---
+  [stone, wood, ore, boxes, targetLevel].forEach(inp => inp.addEventListener('input', saveCannon));
+
+  // --- Logic tính toán ---
+  const toNum = (el) => Number(el.value)||0;
 
   function simulateOptimal(S, W, Q, B, lv){
     let stone=S, wood=W, ore=Q, box=B, log=[];
@@ -60,25 +69,25 @@ window.addEventListener('tab.open', async (e)=>{
     const needOre = 130*lv;
 
     let boxForOre = Math.min(box, needOre - ore);
-    if(boxForOre>0){ log.push(`Dùng ${boxForOre} hộp → +${boxForOre} quặng`); ore += boxForOre; box -= boxForOre; }
-    let boxForWood = Math.min(box, Math.ceil((needWood - wood)/4));
-    if(boxForWood>0){ log.push(`Dùng ${boxForWood} hộp → +${boxForWood*4} gỗ`); wood += boxForWood*4; box -= boxForWood; }
-    if(box>0){ log.push(`Dùng ${box} hộp → +${box*20} đá`); stone += box; box=0; }
+    if(boxForOre>0){ log.push(`Dùng ${boxForOre} hộp → +${boxForOre} quặng`); ore+=boxForOre; box-=boxForOre; }
+    let boxForWood = Math.min(box, Math.ceil((needWood-wood)/4));
+    if(boxForWood>0){ log.push(`Dùng ${boxForWood} hộp → +${boxForWood*4} gỗ`); wood+=boxForWood*4; box-=boxForWood; }
+    if(box>0){ log.push(`Dùng ${box} hộp → +${box*20} đá`); stone+=box; box=0; }
 
     while(true){
-      let missOre = Math.max(0, needOre - ore);
-      let missWood = Math.max(0, needWood - wood);
+      let missOre = Math.max(0, needOre-ore);
+      let missWood = Math.max(0, needWood-wood);
       let stoneToWood = Math.min(Math.floor(stone/5), missWood + missOre*4);
-      if(stoneToWood>0){ log.push(`Đổi ${stoneToWood*5} đá → +${stoneToWood} gỗ`); stone -= stoneToWood*5; wood += stoneToWood; }
+      if(stoneToWood>0){ log.push(`Đổi ${stoneToWood*5} đá → +${stoneToWood} gỗ`); stone-=stoneToWood*5; wood+=stoneToWood; }
       let woodToOre = Math.min(Math.floor(wood/4), missOre);
-      if(woodToOre>0){ log.push(`Đổi ${woodToOre*4} gỗ → +${woodToOre} quặng`); wood -= woodToOre*4; ore += woodToOre; }
+      if(woodToOre>0){ log.push(`Đổi ${woodToOre*4} gỗ → +${woodToOre} quặng`); wood-=woodToOre*4; ore+=woodToOre; }
       if(stoneToWood===0 && woodToOre===0) break;
     }
 
-    let missStone = Math.max(0, needStone - stone);
-    let missWood = Math.max(0, needWood - wood);
-    let missOre = Math.max(0, needOre - ore);
-    if(missStone>0 || missWood>0 || missOre>0) return {ok:false, missing:{stone:missStone, wood:missWood, ore:missOre}, log:log};
+    let missStone = Math.max(0, needStone-stone);
+    let missWood = Math.max(0, needWood-wood);
+    let missOre = Math.max(0, needOre-ore);
+    if(missStone>0 || missWood>0 || missOre>0) return {ok:false, missing:{stone:missStone, wood:missWood, ore:missOre}, log};
 
     stone -= needStone; wood -= needWood; ore -= needOre;
     return {ok:true, log, remaining:{stone, wood, ore}};
@@ -89,17 +98,15 @@ window.addEventListener('tab.open', async (e)=>{
     while(lo<hi){
       let mid = Math.floor((lo+hi+1)/2);
       let result = simulateOptimal(S,W,Q,B,mid);
-      if(result.ok){ lo = mid; lastLog = result.log; lastRemaining = result.remaining; }
-      else hi = mid-1;
+      if(result.ok){ lo=mid; lastLog=result.log; lastRemaining=result.remaining; }
+      else hi=mid-1;
     }
-    return {maxLv: lo, log: lastLog, remaining: lastRemaining};
+    return {maxLv:lo, log:lastLog, remaining:lastRemaining};
   }
 
+  // --- Xử lý bấm nút ---
   function compute(){
-    const S = toNum(stone);
-    const W = toNum(wood);
-    const Q = toNum(ore);
-    const B = toNum(boxes);
+    const S = toNum(stone), W = toNum(wood), Q = toNum(ore), B = toNum(boxes);
     const targetInput = targetLevel.value.trim();
     output.style.visibility='visible';
 
@@ -109,16 +116,14 @@ window.addEventListener('tab.open', async (e)=>{
       if(result.ok){
         output.innerHTML=`<b>Có thể đạt cấp:</b> ${target}<br>
         <b>Tổng điểm:</b> ${target*556000}<br><br>
-        <b>Các bước đổi:</b><br><pre class="log">${result.log.join('\n')}</pre><br>
-        <b>Còn lại:</b><br>
-        <ul><li>Đá: ${result.remaining.stone}</li>
+        <b>Các bước đổi:</b><br><pre>${result.log.join('\n')}</pre><br>
+        <b>Còn lại:</b><ul><li>Đá: ${result.remaining.stone}</li>
         <li>Gỗ: ${result.remaining.wood}</li>
         <li>Quặng: ${result.remaining.ore}</li></ul>`;
       } else {
         const miss = result.missing;
         output.innerHTML=`<b>Không đủ tài nguyên để đạt cấp ${target}</b><br>
-        <b>Còn thiếu:</b><br>
-        <ul><li>Đá: ${miss.stone}</li>
+        <b>Còn thiếu:</b><ul><li>Đá: ${miss.stone}</li>
         <li>Gỗ: ${miss.wood}</li>
         <li>Quặng: ${miss.ore}</li></ul>`;
       }
@@ -127,15 +132,16 @@ window.addEventListener('tab.open', async (e)=>{
       if(res.remaining){
         output.innerHTML=`<b>Cấp tối đa:</b> ${res.maxLv}<br>
         <b>Tổng điểm:</b> ${res.maxLv*556}<br><br>
-        <b>Các bước đổi:</b><br><pre class="log">${res.log.join('\n')}</pre><br>
-        <b>Còn lại:</b><br>
-        <ul><li>Đá: ${res.remaining.stone}</li>
+        <b>Các bước đổi:</b><br><pre>${res.log.join('\n')}</pre><br>
+        <b>Còn lại:</b><ul><li>Đá: ${res.remaining.stone}</li>
         <li>Gỗ: ${res.remaining.wood}</li>
         <li>Quặng: ${res.remaining.ore}</li></ul>`;
       } else {
         output.innerHTML=`<b>Không đủ tài nguyên để nâng cấp</b>`;
       }
     }
+
+    saveCannon(); // lưu dữ liệu lên Firestore khi bấm tính
   }
 
   btnCompute.addEventListener('click', compute);
