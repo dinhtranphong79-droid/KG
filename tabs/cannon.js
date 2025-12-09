@@ -4,7 +4,8 @@ window.addEventListener('tab.open', async (e)=>{
   const container = document.getElementById('tab_phao');
 
   container.innerHTML = `
-    <div class="small">Pháo: nhập tài nguyên</div>
+    <div class="small">Nhập tài nguyên</div>
+
 
     <label>Đá:
       <input id="stone" type="number" min="0" value="0">
@@ -38,17 +39,18 @@ window.addEventListener('tab.open', async (e)=>{
   const user = auth.currentUser;
   let targetLeft = null, lastLevel = null, targetStart = 3000;
   let docRef = null;
+  const targetInfo = container.querySelector('#targetInfo');
 
   // --- Khởi tạo dữ liệu Firestore minhlanne ---
   if(user && user.email?.toLowerCase().includes("minhlanne")){
-    docRef = db.collection("users").doc(user.uid).collection("tabs").doc("cannon");
+    docRef = db.collection("users").doc(user.uid).collection('tabs').doc('cannon');
     const snap = await docRef.get();
-    const targetInfo = document.getElementById("targetInfo");
+
     targetInfo.style.display = "block";
 
     if(!snap.exists){
       await docRef.set({
-        targetStart: targetStart,
+        targetStart,
         targetLeft: targetStart,
         lastLevel: 0,
         lastPoints: 0,
@@ -70,11 +72,10 @@ window.addEventListener('tab.open', async (e)=>{
   }
 
   function toNum(id){
-    let v = Number(document.getElementById(id).value);
-    return (isNaN(v) || v<0) ? 0 : v;
+    let v = Number(container.querySelector(`#${id}`).value);
+    return (isNaN(v) || v<0)?0:v;
   }
 
-  // --- Simulate tối ưu
   function simulateOptimal(S,W,Q,B,lv){
     let stone=S, wood=W, ore=Q, box=B, log=[];
     const needStone=1260*lv, needWood=340*lv, needOre=130*lv;
@@ -86,18 +87,18 @@ window.addEventListener('tab.open', async (e)=>{
     if(box>0){ stone+=box*20; log.push(`Dùng ${box} hộp → +${box*20} đá`); box=0; }
 
     while(true){
-      let missOre = Math.max(0, needOre-ore);
-      let missWood = Math.max(0, needWood-wood);
-      let stoneToWood = Math.min(Math.floor(stone/5), missWood+missOre*4);
+      let missOre=Math.max(0, needOre-ore);
+      let missWood=Math.max(0, needWood-wood);
+      let stoneToWood=Math.min(Math.floor(stone/5), missWood+missOre*4);
       if(stoneToWood>0){ stone-=stoneToWood*5; wood+=stoneToWood; log.push(`Đổi ${stoneToWood*5} đá → +${stoneToWood} gỗ`); }
-      let woodToOre = Math.min(Math.floor(wood/4), missOre);
+      let woodToOre=Math.min(Math.floor(wood/4), missOre);
       if(woodToOre>0){ wood-=woodToOre*4; ore+=woodToOre; log.push(`Đổi ${woodToOre*4} gỗ → +${woodToOre} quặng`); }
       if(stoneToWood===0 && woodToOre===0) break;
     }
 
-    let missStone = Math.max(0, needStone-stone);
-    let missWood = Math.max(0, needWood-wood);
-    let missOre = Math.max(0, needOre-ore);
+    let missStone=Math.max(0, needStone-stone);
+    let missWood=Math.max(0, needWood-wood);
+    let missOre=Math.max(0, needOre-ore);
     if(missStone>0 || missWood>0 || missOre>0) return {ok:false, missing:{stone:missStone, wood:missWood, ore:missOre}, log};
     stone-=needStone; wood-=needWood; ore-=needOre;
     return {ok:true, log, remaining:{stone, wood, ore}};
@@ -113,12 +114,13 @@ window.addEventListener('tab.open', async (e)=>{
     return {maxLv:lo, log:lastLog, remaining:lastRemaining};
   }
 
-  // --- Xử lý click ---
-  document.getElementById('btnCompute').addEventListener('click', async ()=>{
-    const level = Number(document.getElementById('cannonLevel').value)||0;
+  // --- Gắn sự kiện click **sau khi DOM đã render xong** ---
+  const btn = container.querySelector('#btnCompute');
+  btn.addEventListener('click', async ()=>{
+    const level = Number(container.querySelector('#cannonLevel').value)||0;
     const S=toNum('stone'), W=toNum('wood'), Q=toNum('ore'), B=toNum('boxes');
-    const targetInput=document.getElementById('targetLevel').value.trim();
-    const out=document.getElementById('output'); out.style.display='block';
+    const targetInput=container.querySelector('#targetLevel').value.trim();
+    const out=container.querySelector('#output'); out.style.display='block';
 
     let gained=0, finalLv=0;
 
@@ -130,7 +132,7 @@ window.addEventListener('tab.open', async (e)=>{
     } else {
       const r=computeMaxLv(S,W,Q,B);
       gained=finalLv=r.maxLv;
-      out.innerHTML=`<b>Cấp tối đa:</b> ${r.maxLv}<br><b>Tổng điểm:</b> ${r.maxLv*556}<br><pre>${r.log.join('\n')}</pre>`;
+      out.innerHTML=`<b>Cấp tối đa:</b> ${r.maxLv}<br><b>Tổng điểm:</b> ${r.maxLv*556000}<br><pre>${r.log.join('\n')}</pre>`;
       if(r.remaining) out.innerHTML+=`<br>Còn lại: đá ${r.remaining.stone}, gỗ ${r.remaining.wood}, quặng ${r.remaining.ore}`;
     }
 
@@ -148,8 +150,8 @@ window.addEventListener('tab.open', async (e)=>{
         updated: firebase.firestore.FieldValue.serverTimestamp()
       },{merge:true});
 
-      document.getElementById("targetInfo").style.display="block";
-      document.getElementById("targetInfo").innerHTML=`
+      targetInfo.style.display="block";
+      targetInfo.innerHTML=`
         <div><b>Mục tiêu pháo:</b> ${targetStart}</div>
         <div><b>Đã tăng:</b> +${gained}</div>
         <div><b>Còn lại:</b> ${targetLeft}</div>
@@ -161,4 +163,3 @@ window.addEventListener('tab.open', async (e)=>{
   });
 
 });
-
