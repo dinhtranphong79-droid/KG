@@ -1,41 +1,48 @@
 // cannon.js
 window.addEventListener('tab.open', async (e)=>{
-  if(e.detail.id !== 'phao') return; // chỉ chạy khi tab phao được chọn
+  if(e.detail.id !== 'phao') return;
 
   const container = document.getElementById('tab_phao');
   if(!container) return;
 
-  // Render HTML + style cho giao diện dễ nhìn
   container.innerHTML = `
-    <h2 style="margin-bottom:16px;">Level Pháo</h2>
+    <h2 style="margin-bottom:20px;color:#1e3a8a;">Level Pháo</h2>
     <div class="input-group" style="margin-bottom:16px;">
-      <label style="margin-bottom:6px;font-weight:500;">Đá</label>
-      <input type="number" id="stone" value="0" min="0" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ccc;font-size:16px;">
+      <label style="font-weight:500;margin-bottom:6px;">Đá</label>
+      <input type="number" id="stone" value="0" min="0" 
+        style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid #cbd5e1;font-size:16px;background:#f8fafc;">
     </div>
     <div class="input-group" style="margin-bottom:16px;">
-      <label style="margin-bottom:6px;font-weight:500;">Gỗ</label>
-      <input type="number" id="wood" value="0" min="0" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ccc;font-size:16px;">
+      <label style="font-weight:500;margin-bottom:6px;">Gỗ</label>
+      <input type="number" id="wood" value="0" min="0"
+        style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid #cbd5e1;font-size:16px;background:#f8fafc;">
     </div>
     <div class="input-group" style="margin-bottom:16px;">
-      <label style="margin-bottom:6px;font-weight:500;">Quặng</label>
-      <input type="number" id="ore" value="0" min="0" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ccc;font-size:16px;">
+      <label style="font-weight:500;margin-bottom:6px;">Quặng</label>
+      <input type="number" id="ore" value="0" min="0"
+        style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid #cbd5e1;font-size:16px;background:#f8fafc;">
     </div>
     <div class="input-group" style="margin-bottom:16px;">
-      <label style="margin-bottom:6px;font-weight:500;">Hộp pháo</label>
-      <input type="number" id="boxes" value="0" min="0" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ccc;font-size:16px;">
+      <label style="font-weight:500;margin-bottom:6px;">Hộp pháo</label>
+      <input type="number" id="boxes" value="0" min="0"
+        style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid #cbd5e1;font-size:16px;background:#f8fafc;">
     </div>
-    <div class="input-group" style="margin-bottom:16px;">
-      <label style="margin-bottom:6px;font-weight:500;">Cấp mục tiêu</label>
-      <input type="number" id="targetLevel" value="" min="1" placeholder="Để trống = max" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ccc;font-size:16px;">
+    <div class="input-group" style="margin-bottom:20px;">
+      <label style="font-weight:500;margin-bottom:6px;">Cấp mục tiêu</label>
+      <input type="number" id="targetLevel" value="" min="1" placeholder="Để trống = max"
+        style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid #cbd5e1;font-size:16px;background:#f8fafc;">
     </div>
-    <button id="btnCompute" style="width:100%;padding:12px;border-radius:10px;background:#2563eb;color:white;font-size:16px;border:none;cursor:pointer;">Tính</button>
-    <div id="output" class="result" style="visibility:hidden;margin-top:20px;padding:14px;border-radius:10px;border:1px solid #ccc;background:#f8fafc;word-break:break-word;"></div>
+    <button id="btnCompute" 
+      style="width:100%;padding:14px;border-radius:12px;background:#2563eb;color:white;font-size:16px;font-weight:600;border:none;cursor:pointer;margin-bottom:16px;">
+      Tính
+    </button>
+    <div id="output" class="result" style="visibility:hidden;padding:14px;border-radius:12px;border:1px solid #cbd5e1;background:#f1f5f9;word-break:break-word;"></div>
   `;
 
-  // --- Selector scope trong container ---
+  // --- JS logic tính toán ---
   const stone = container.querySelector('#stone');
-  const wood  = container.querySelector('#wood');
-  const ore   = container.querySelector('#ore');
+  const wood = container.querySelector('#wood');
+  const ore = container.querySelector('#ore');
   const boxes = container.querySelector('#boxes');
   const targetLevel = container.querySelector('#targetLevel');
   const btnCompute = container.querySelector('#btnCompute');
@@ -46,7 +53,6 @@ window.addEventListener('tab.open', async (e)=>{
     return isNaN(v) || v<0 ? 0 : v;
   }
 
-  // --- Logic tính toán ---
   function simulateOptimal(S, W, Q, B, lv){
     let stone=S, wood=W, ore=Q, box=B, log=[];
     const needStone = 1260*lv;
@@ -89,7 +95,6 @@ window.addEventListener('tab.open', async (e)=>{
     return {maxLv: lo, log: lastLog, remaining: lastRemaining};
   }
 
-  // --- Xử lý click ---
   function compute(){
     const S = toNum(stone);
     const W = toNum(wood);
@@ -134,5 +139,4 @@ window.addEventListener('tab.open', async (e)=>{
   }
 
   btnCompute.addEventListener('click', compute);
-
 });
