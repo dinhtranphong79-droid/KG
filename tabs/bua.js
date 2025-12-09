@@ -1,20 +1,98 @@
-window.addEventListener('tab.open', async (e)=>{
-  if(e.detail.id !== 'bua') return;
-  const container = document.getElementById('tab_bua');
-  container.innerHTML = `<div class="small">Búa & Jennifer</div>
-    <label>Số búa: <input id="m_hammer" type="number" min="0" value="0"></label>
-    <label>Số jennifer: <input id="m_jenn" type="number" min="0" value="0"></label>
-    <div class="controls"><button id="m_compute" class="primary">Tính</button></div>
-    <div id="m_result" class="result" style="display:none"></div>`;
-  document.getElementById('m_compute').addEventListener('click', async ()=>{
-    const h = Number(document.getElementById('m_hammer').value)||0;
-    const j = Number(document.getElementById('m_jenn').value)||0;
-    const pts = h*100 + j*1000;
-    document.getElementById('m_result').style.display='block';
-    document.getElementById('m_result').innerHTML = `<div>Điểm Búa: ${pts.toLocaleString()}</div>`;
-    if(auth.currentUser){
-      await db.collection('users').doc(auth.currentUser.uid).collection('tabs').doc('bua').set({ lastPoints: pts, h, j, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
+// --- Hằng điểm ---
+const POINT_PER_HAMMER = 100;
+const POINT_PER_JENNIFER = 1000;
+
+// --- DOM ---
+const hammersInput = document.getElementById('hammers');
+const jennifersInput = document.getElementById('jennifers');
+const calcBtn = document.getElementById('calcBtn');
+const clearBtn = document.getElementById('clearBtn');
+const resultCard = document.getElementById('result');
+const errorBox = document.getElementById('error');
+
+const outHammers = document.getElementById('out-hammers');
+const outJennifers = document.getElementById('out-jennifers');
+const outHammerPoints = document.getElementById('out-hammer-points');
+const outJenniferPoints = document.getElementById('out-jennifer-points');
+const outTotal = document.getElementById('out-total');
+
+// --- Hàm tiện ích ---
+function fmt(n){ return Number(n).toLocaleString('vi-VN'); }
+function parseNonNegInt(v){
+  if(v === '' || v === null || v === undefined) return 0;
+  const n = Math.floor(Number(v));
+  if(Number.isNaN(n) || n < 0) return null;
+  return n;
+}
+function showError(msg){
+  errorBox.style.display = 'block';
+  errorBox.textContent = msg;
+}
+function clearError(){
+  errorBox.style.display = 'none';
+  errorBox.textContent = '';
+}
+
+// --- Tính điểm ---
+async function compute(){
+  clearError();
+  const h = parseNonNegInt(hammersInput.value);
+  const j = parseNonNegInt(jennifersInput.value);
+
+  if(h === null || j === null){
+    showError('Vui lòng nhập số nguyên >= 0 cho cả hai ô.');
+    resultCard.style.display = 'none';
+    return;
+  }
+
+  const hammerPoints = h * POINT_PER_HAMMER;
+  const jenniferPoints = j * POINT_PER_JENNIFER;
+  const total = hammerPoints + jenniferPoints;
+
+  outHammers.textContent = fmt(h);
+  outJennifers.textContent = fmt(j);
+  outHammerPoints.textContent = fmt(hammerPoints);
+  outJenniferPoints.textContent = fmt(jenniferPoints);
+  outTotal.textContent = fmt(total);
+  resultCard.style.display = 'block';
+
+  // --- Lưu Firestore nếu có auth ---
+  if(typeof auth !== 'undefined' && auth.currentUser){
+    try{
+      await db.collection('users')
+        .doc(auth.currentUser.uid)
+        .collection('tabs')
+        .doc('bua')
+        .set({
+          lastPoints: total,
+          hammers: h,
+          jennifers: j,
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        }, {merge:true});
       window.dispatchEvent(new Event('summary.refresh'));
+    }catch(err){
+      console.error('Lỗi lưu Firestore:', err);
     }
+  }
+}
+
+// --- Event listeners ---
+calcBtn.addEventListener('click', compute);
+
+[hammersInput, jennifersInput].forEach(inp=>{
+  inp.addEventListener('keydown', e=>{
+    if(e.key === 'Enter') { compute(); e.preventDefault(); }
   });
 });
+
+clearBtn.addEventListener('click', ()=>{
+  hammersInput.value = 0;
+  jennifersInput.value = 0;
+  clearError();
+  resultCard.style.display = 'none';
+  hammersInput.focus();
+});
+
+// --- Khởi tạo ---
+clearError();
+resultCard.style.display = 'none';
