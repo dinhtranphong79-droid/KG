@@ -5,16 +5,31 @@ window.addEventListener('tab.open', async (e)=>{
   const container = document.getElementById('tab_phao');
   if(!container) return;
 
-  // Render HTML qua JS
+  // Render HTML + style cho giao diện dễ nhìn
   container.innerHTML = `
-    <h2>Level pháo</h2>
-    <div class="input-group"><label>Đá</label><input type="number" id="stone" value="0" min="0"></div>
-    <div class="input-group"><label>Gỗ</label><input type="number" id="wood" value="0" min="0"></div>
-    <div class="input-group"><label>Quặng</label><input type="number" id="ore" value="0" min="0"></div>
-    <div class="input-group"><label>Hộp pháo</label><input type="number" id="boxes" value="0" min="0"></div>
-    <div class="input-group"><label>Cấp mục tiêu</label><input type="number" id="targetLevel" value="" min="1" placeholder="Để trống = max"></div>
-    <button id="btnCompute">Tính</button>
-    <div id="output" class="result" style="visibility:hidden"></div>
+    <h2 style="margin-bottom:16px;">Level Pháo</h2>
+    <div class="input-group" style="margin-bottom:16px;">
+      <label style="margin-bottom:6px;font-weight:500;">Đá</label>
+      <input type="number" id="stone" value="0" min="0" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ccc;font-size:16px;">
+    </div>
+    <div class="input-group" style="margin-bottom:16px;">
+      <label style="margin-bottom:6px;font-weight:500;">Gỗ</label>
+      <input type="number" id="wood" value="0" min="0" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ccc;font-size:16px;">
+    </div>
+    <div class="input-group" style="margin-bottom:16px;">
+      <label style="margin-bottom:6px;font-weight:500;">Quặng</label>
+      <input type="number" id="ore" value="0" min="0" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ccc;font-size:16px;">
+    </div>
+    <div class="input-group" style="margin-bottom:16px;">
+      <label style="margin-bottom:6px;font-weight:500;">Hộp pháo</label>
+      <input type="number" id="boxes" value="0" min="0" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ccc;font-size:16px;">
+    </div>
+    <div class="input-group" style="margin-bottom:16px;">
+      <label style="margin-bottom:6px;font-weight:500;">Cấp mục tiêu</label>
+      <input type="number" id="targetLevel" value="" min="1" placeholder="Để trống = max" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ccc;font-size:16px;">
+    </div>
+    <button id="btnCompute" style="width:100%;padding:12px;border-radius:10px;background:#2563eb;color:white;font-size:16px;border:none;cursor:pointer;">Tính</button>
+    <div id="output" class="result" style="visibility:hidden;margin-top:20px;padding:14px;border-radius:10px;border:1px solid #ccc;background:#f8fafc;word-break:break-word;"></div>
   `;
 
   // --- Selector scope trong container ---
