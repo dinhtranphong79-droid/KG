@@ -1,98 +1,162 @@
-// --- Hằng điểm ---
+import { db, auth } from "../firebase.js";
+
+const container = document.getElementById("tab_bua");
+
+function renderHTML() {
+  container.innerHTML = `
+    <div class="wrap">
+      <h2>Búa & Jennifer</h2>
+      <p class="lead">Nhập số lượng Búa và Jennifer - 1 Búa = 100 điểm, 1 Jennifer = 1000 điểm.</p>
+      <div class="row">
+        <div class="col">
+          <label for="bua_hammers">Búa</label>
+          <input id="bua_hammers" type="number" min="0" value="0">
+        </div>
+        <div class="col">
+          <label for="bua_jennifers">Jennifer</label>
+          <input id="bua_jennifers" type="number" min="0" value="0">
+        </div>
+      </div>
+      <div class="controls">
+        <button id="bua_calcBtn" class="btn">Tính</button>
+        <button id="bua_clearBtn" class="clear">Đặt lại</button>
+      </div>
+      <div id="bua_error" class="error" style="display:none"></div>
+      <div id="bua_result" class="result-card" style="display:none">
+        <table>
+          <thead>
+            <tr>
+              <th>Loại</th>
+              <th>Số lượng</th>
+              <th>Điểm mỗi cái</th>
+              <th>Tổng điểm</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Búa</td>
+              <td class="value" id="bua_out-hammers">0</td>
+              <td class="value">100</td>
+              <td class="value" id="bua_out-hammer-points">0</td>
+            </tr>
+            <tr>
+              <td>Jennifer</td>
+              <td class="value" id="bua_out-jennifers">0</td>
+              <td class="value">1000</td>
+              <td class="value" id="bua_out-jennifer-points">0</td>
+            </tr>
+            <tr class="total">
+              <td><b>Tổng</b></td>
+              <td></td>
+              <td></td>
+              <td class="value" id="bua_out-total">0</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// --- Constants ---
 const POINT_PER_HAMMER = 100;
 const POINT_PER_JENNIFER = 1000;
 
-// --- DOM ---
-const hammersInput = document.getElementById('hammers');
-const jennifersInput = document.getElementById('jennifers');
-const calcBtn = document.getElementById('calcBtn');
-const clearBtn = document.getElementById('clearBtn');
-const resultCard = document.getElementById('result');
-const errorBox = document.getElementById('error');
+// --- State ---
+let state = {
+  hammers: 0,
+  jennifers: 0
+};
 
-const outHammers = document.getElementById('out-hammers');
-const outJennifers = document.getElementById('out-jennifers');
-const outHammerPoints = document.getElementById('out-hammer-points');
-const outJenniferPoints = document.getElementById('out-jennifer-points');
-const outTotal = document.getElementById('out-total');
-
-// --- Hàm tiện ích ---
+// --- Compute ---
 function fmt(n){ return Number(n).toLocaleString('vi-VN'); }
-function parseNonNegInt(v){
-  if(v === '' || v === null || v === undefined) return 0;
-  const n = Math.floor(Number(v));
-  if(Number.isNaN(n) || n < 0) return null;
-  return n;
+
+function parseNonNegInt(v){ 
+  const n = Math.floor(Number(v)||0); 
+  return n>=0 ? n : 0; 
 }
+
 function showError(msg){
-  errorBox.style.display = 'block';
-  errorBox.textContent = msg;
+  const err = container.querySelector("#bua_error");
+  err.style.display="block";
+  err.textContent = msg;
 }
+
 function clearError(){
-  errorBox.style.display = 'none';
-  errorBox.textContent = '';
+  const err = container.querySelector("#bua_error");
+  err.style.display="none";
+  err.textContent = "";
 }
 
-// --- Tính điểm ---
-async function compute(){
+function compute(){
   clearError();
-  const h = parseNonNegInt(hammersInput.value);
-  const j = parseNonNegInt(jennifersInput.value);
+  const hInput = container.querySelector("#bua_hammers");
+  const jInput = container.querySelector("#bua_jennifers");
+  let h = parseNonNegInt(hInput.value);
+  let j = parseNonNegInt(jInput.value);
 
-  if(h === null || j === null){
-    showError('Vui lòng nhập số nguyên >= 0 cho cả hai ô.');
-    resultCard.style.display = 'none';
-    return;
-  }
+  state.hammers = h;
+  state.jennifers = j;
+  saveState();
 
   const hammerPoints = h * POINT_PER_HAMMER;
   const jenniferPoints = j * POINT_PER_JENNIFER;
   const total = hammerPoints + jenniferPoints;
 
-  outHammers.textContent = fmt(h);
-  outJennifers.textContent = fmt(j);
-  outHammerPoints.textContent = fmt(hammerPoints);
-  outJenniferPoints.textContent = fmt(jenniferPoints);
-  outTotal.textContent = fmt(total);
-  resultCard.style.display = 'block';
+  container.querySelector("#bua_out-hammers").textContent = fmt(h);
+  container.querySelector("#bua_out-jennifers").textContent = fmt(j);
+  container.querySelector("#bua_out-hammer-points").textContent = fmt(hammerPoints);
+  container.querySelector("#bua_out-jennifer-points").textContent = fmt(jenniferPoints);
+  container.querySelector("#bua_out-total").textContent = fmt(total);
+  container.querySelector("#bua_result").style.display = "block";
+}
 
-  // --- Lưu Firestore nếu có auth ---
-  if(typeof auth !== 'undefined' && auth.currentUser){
-    try{
-      await db.collection('users')
-        .doc(auth.currentUser.uid)
-        .collection('tabs')
-        .doc('bua')
-        .set({
-          lastPoints: total,
-          hammers: h,
-          jennifers: j,
-          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-        }, {merge:true});
-      window.dispatchEvent(new Event('summary.refresh'));
-    }catch(err){
-      console.error('Lỗi lưu Firestore:', err);
-    }
-  }
+// --- Firestore ---
+export function getState(){ return state; }
+
+export function setState(s){
+  if(!s) return;
+  state = s;
+  container.querySelector("#bua_hammers").value = state.hammers || 0;
+  container.querySelector("#bua_jennifers").value = state.jennifers || 0;
+}
+
+export async function loadState(){
+  const user = auth.currentUser;
+  if(!user) return;
+  const docRef = await db.collection("users").doc(user.uid).collection("modules").doc("bua").get();
+  if(docRef.exists) setState(docRef.data());
+}
+
+export async function saveState(){
+  const user = auth.currentUser;
+  if(!user) return;
+  await db.collection("users").doc(user.uid).collection("modules").doc("bua").set(state);
 }
 
 // --- Event listeners ---
-calcBtn.addEventListener('click', compute);
+renderHTML();
 
-[hammersInput, jennifersInput].forEach(inp=>{
-  inp.addEventListener('keydown', e=>{
-    if(e.key === 'Enter') { compute(); e.preventDefault(); }
+const hInput = container.querySelector("#bua_hammers");
+const jInput = container.querySelector("#bua_jennifers");
+
+container.querySelector("#bua_calcBtn").addEventListener("click", compute);
+container.querySelector("#bua_clearBtn").addEventListener("click", ()=>{
+  state.hammers = 0; state.jennifers = 0;
+  hInput.value = 0; jInput.value = 0;
+  clearError();
+  container.querySelector("#bua_result").style.display = "none";
+  saveState();
+});
+
+// Enter cũng tính
+[hInput,jInput].forEach(inp=>{
+  inp.addEventListener("keydown", e=>{
+    if(e.key==='Enter'){ compute(); e.preventDefault(); }
   });
 });
 
-clearBtn.addEventListener('click', ()=>{
-  hammersInput.value = 0;
-  jennifersInput.value = 0;
-  clearError();
-  resultCard.style.display = 'none';
-  hammersInput.focus();
+// Auto save khi thay đổi
+[hInput,jInput].forEach(inp=>{
+  inp.addEventListener("input", saveState);
 });
-
-// --- Khởi tạo ---
-clearError();
-resultCard.style.display = 'none';
