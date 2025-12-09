@@ -1,20 +1,18 @@
 // tabs/cannon.js
 (function(){
-  // --- Chuyển input sang số ---
+
   function toNum(id){
     let v = Number(document.getElementById(id).value);
     return (isNaN(v) || v<0) ? 0 : v;
   }
 
-  // --- Logic tính tối ưu ---
+  // ------------- LOGIC TÍNH ----------------
   function simulateOptimal(S, W, Q, B, lv){
     let stone=S, wood=W, ore=Q, box=B, log=[];
-    const needStone = 1260*lv;
-    const needWood  = 340*lv;
-    const needOre   = 130*lv;
+    const needStone = 1260*lv, needWood = 340*lv, needOre = 130*lv;
 
     let boxForOre = Math.min(box, Math.max(0, needOre - ore));
-    if(boxForOre > 0){
+    if(boxForOre>0){
       ore += boxForOre;
       box -= boxForOre;
       log.push(`Dùng ${boxForOre} hộp pháo → +${boxForOre} quặng`);
@@ -22,210 +20,167 @@
 
     while(true){
       let needMoreWood = Math.max(0, needWood - wood);
-      let woodFromStone = Math.min(Math.floor(stone/4), needMoreWood);
-      if(woodFromStone>0){
-        stone -= woodFromStone*4; wood += woodFromStone;
-        log.push(`Đổi ${woodFromStone*4} đá → ${woodFromStone} gỗ`);
+      let woodChange = Math.min(Math.floor(stone/4), needMoreWood);
+      if(woodChange>0){
+        stone -= woodChange*4; wood += woodChange;
+        log.push(`Đổi ${woodChange*4} đá → ${woodChange} gỗ`);
       }
 
       let needMoreOre = Math.max(0, needOre - ore);
-      let oreFromWood = Math.min(Math.floor(wood/4), needMoreOre);
-      if(oreFromWood>0){
-        wood -= oreFromWood*4; ore += oreFromWood;
-        log.push(`Đổi ${oreFromWood*4} gỗ → ${oreFromWood} quặng`);
+      let oreChange = Math.min(Math.floor(wood/4), needMoreOre);
+      if(oreChange>0){
+        wood -= oreChange*4; ore += oreChange;
+        log.push(`Đổi ${oreChange*4} gỗ → ${oreChange} quặng`);
       }
 
-      if(woodFromStone === 0 && oreFromWood === 0) break;
+      if(woodChange===0 && oreChange===0) break;
     }
 
-    let missStone = Math.max(0, needStone - stone);
-    let missWood  = Math.max(0, needWood - wood);
-    let missOre   = Math.max(0, needOre - ore);
-
-    if(missStone>0 || missWood>0 || missOre>0){
+    let missStone = needStone - stone, missWood = needWood - wood, missOre = needOre - ore;
+    if(missStone>0 || missWood>0 || missOre>0)
       return {ok:false, missing:{stone:missStone, wood:missWood, ore:missOre}, log};
-    }
 
-    stone -= needStone;
-    wood  -= needWood;
-    ore   -= needOre;
-
-    return {ok:true, log, remaining:{stone, wood, ore}};
+    return {
+      ok:true, 
+      log, 
+      remaining:{ stone:stone-needStone, wood:wood-needWood, ore:ore-needOre }
+    };
   }
 
   function computeMaxLv(S,W,Q,B){
-    let lo=0, hi=20000, lastLog=[], lastRemaining=null;
+    let lo=0, hi=20000, lastLog=null, lastRemain=null;
     while(lo<hi){
-      let mid = Math.floor((lo+hi+1)/2);
-      let result = simulateOptimal(S,W,Q,B,mid);
-      if(result.ok){
-        lo = mid;
-        lastLog = result.log;
-        lastRemaining = result.remaining;
-      } else {
-        hi = mid-1;
-      }
+      let mid=Math.floor((lo+hi+1)/2);
+      let r = simulateOptimal(S,W,Q,B,mid);
+      if(r.ok){ lo=mid; lastLog=r.log; lastRemain=r.remaining; }
+      else hi=mid-1;
     }
-    return {maxLv: lo, log: lastLog, remaining: lastRemaining};
+    return {maxLv:lo, log:lastLog, remaining:lastRemain};
   }
 
-  // --- Mục tiêu pháo riêng minhlanne ---
-  async function applyCannonGoal(user, gainedLv){
-    const uid = user.uid;
-    const email = user.email;
-    if (!email || !email.toLowerCase().includes("minhlanne")) return;
+  // ----------- 🔥 MỤC TIÊU TÀI KHOẢN MINHLANNE -------------
+  async function applyCannonGoal(user,gainedLv){
+    if(!user || !user.email.toLowerCase().includes("minhlanne")) return;
 
-    const ref = db.collection("users").doc(uid);
+    const ref = db.collection("users").doc(user.uid);
     const snap = await ref.get();
-    let data = snap.exists ? snap.data() : {};
+    let d = snap.exists? snap.data(): {};
 
-    let target = data.targetCannon || 3000;
-    let remaining = data.remainingTarget || 3000;
-    remaining = Math.max(0, remaining - gainedLv);
+    let target = d.targetCannon || 3000;
+    let remaining = Math.max(0, (d.remainingTarget ?? 3000) - gainedLv);
 
     await ref.set({
       targetCannon: target,
       remainingTarget: remaining,
       lastCannonAdded: gainedLv,
       lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-    }, {merge:true});
+    },{merge:true});
 
     return remaining;
   }
 
-  // --- Giao diện tab ---
-  window.addEventListener('tab.open', (e)=>{
-    if(e.detail.id !== 'phao') return;
-    const container = document.getElementById('tab_phao');
-    container.innerHTML = `
+  // ----------- 🔥 LOAD DATA USER -------------
+  async function loadSavedInputs(user){
+    if(!user) return {};
+    let doc = await db.collection("users")
+      .doc(user.uid)
+      .collection("tabs")
+      .doc("cannon")
+      .get();
+    return doc.exists ? doc.data() : {};
+  }
+
+  // ----------- UI TAB ----------------
+  window.addEventListener("tab.open", async (e)=>{
+    if(e.detail.id!=="phao") return;
+    
+    const user = auth.currentUser;
+    const saved = await loadSavedInputs(user);
+
+    const container=document.getElementById("tab_phao");
+    container.innerHTML=`
       <div class="cannon-container">
         <h2>Level Pháo</h2>
         <div class="input-column">
-          <label>Đá <input id="stone" type="number" min="0" value="0"></label>
-          <label>Gỗ <input id="wood" type="number" min="0" value="0"></label>
-          <label>Quặng <input id="ore" type="number" min="0" value="0"></label>
-          <label>Hộp pháo <input id="boxes" type="number" min="0" value="0"></label>
-          <label>Cấp mục tiêu <input id="targetLevel" type="number" min="1" value="" placeholder="Để trống = max"></label>
+          <label>Đá<input id="stone" type="number" value="${saved.stone ?? 0}"></label>
+          <label>Gỗ<input id="wood" type="number" value="${saved.wood ?? 0}"></label>
+          <label>Quặng<input id="ore" type="number" value="${saved.ore ?? 0}"></label>
+          <label>Hộp pháo<input id="boxes" type="number" value="${saved.boxes ?? 0}"></label>
+          <label>Cấp mục tiêu<input id="targetLevel" type="number" value="${saved.targetLevel ?? ""}" placeholder="Để trống = max"></label>
         </div>
-        <div class="controls"><button id="btnCompute" class="primary">Tính</button></div>
+        <button class="primary" id="btnCompute">Tính</button>
+
+        <div id="goalOutput" class="result" style="display:none;background:#fff7d6"></div>
         <div id="output" class="result" style="display:none"></div>
-        <div id="goalOutput" class="result" style="display:none;background:#fff3d4"></div>
       </div>
 
       <style>
-        .cannon-container { 
-          background:#f9f9f9; 
-          padding:20px; 
-          border-radius:12px; 
-          box-shadow:0 4px 12px rgba(0,0,0,0.1); 
-          max-width:500px; 
-          margin:auto; 
-        }
-        .cannon-container h2 { 
-          margin-bottom:16px; 
-          text-align:center; 
-          color:#1f2937; 
-        }
-        .input-column { 
-          display:flex; 
-          flex-direction:column; 
-          gap:12px; 
-          margin-bottom:16px; 
-        }
-        .input-column label { 
-          display:flex; 
-          flex-direction:column; 
-          font-weight:500; 
-          color:#374151; 
-        }
-        .input-column input { 
-          padding:8px 10px; 
-          border-radius:8px; 
-          border:1px solid #d1d5db; 
-          font-size:14px; 
-          width:100%;
-        }
-        .controls { text-align:center; margin-bottom:16px; }
-        .controls button.primary { 
-          padding:10px 20px; 
-          font-size:16px; 
-          border:none; 
-          border-radius:8px; 
-          background:#3b82f6; 
-          color:white; 
-          cursor:pointer; 
-          transition:0.2s; 
-        }
-        .controls button.primary:hover { background:#2563eb; }
-        .result { 
-          background:white; 
-          padding:14px; 
-          border-radius:8px; 
-          border:1px solid #e5e7eb; 
-          margin-bottom:12px; 
-          line-height:1.5; 
-          white-space:pre-wrap; 
-        }
-        #goalOutput { border-left:4px solid #f59e0b; }
+        .cannon-container{padding:20px;background:#fff;border-radius:10px;max-width:480px;margin:auto;}
+        .input-column{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+        label{font-weight:600;color:#333;display:flex;flex-direction:column;}
+        input{padding:6px;border-radius:6px;border:1px solid #ccc;}
+        button.primary{width:100%;padding:10px;background:#4a90e2;color:white;border:none;border-radius:6px;margin-bottom:15px;}
+        .result{padding:10px;border:1px solid #ddd;border-radius:6px;margin-top:10px;white-space:pre-wrap;}
       </style>
     `;
 
-    document.getElementById('btnCompute').addEventListener('click', async ()=>{
-      const S = toNum('stone'), W = toNum('wood'), Q = toNum('ore'), B = toNum('boxes');
-      const out = document.getElementById('output');
-      const goalOut = document.getElementById('goalOutput');
-      out.style.display='block';
+    const goalBox=document.getElementById("goalOutput");
 
-      let gainedLv = 0, finalLv = 0;
-      const targetRaw = document.getElementById('targetLevel').value.trim();
+    // 🔥 nếu là minhlanne → load mục tiêu ngay
+    if(user && user.email.toLowerCase().includes("minhlanne")){
+      let userDoc=await db.collection("users").doc(user.uid).get();
+      if(userDoc.exists){
+        let d=userDoc.data();
+        if(d.remainingTarget!==undefined){
+          goalBox.style.display="block";
+          goalBox.innerHTML=`🎯 <b>Mục tiêu pháo</b><br>Ban đầu: ${d.targetCannon}<br><b>Còn lại: ${d.remainingTarget}</b>`;
+        }
+      }
+    }
 
-      if(targetRaw !== ""){
-        const target = Math.max(1, Number(targetRaw));
-        const result = simulateOptimal(S,W,Q,B,target);
-        if(result.ok){
-          gainedLv = target; finalLv = target;
-          out.innerHTML = `<b>Có thể đạt cấp:</b> ${target}<br><b>Tổng điểm:</b> ${target*556}<br><pre class="log">${result.log.join('\n')}</pre><div>Còn lại: Đá ${result.remaining.stone}, Gỗ ${result.remaining.wood}, Quặng ${result.remaining.ore}</div>`;
+    document.getElementById("btnCompute").addEventListener("click", async ()=>{
+      const S=toNum("stone"),W=toNum("wood"),Q=toNum("ore"),B=toNum("boxes");
+      const targetRaw=document.getElementById("targetLevel").value.trim();
+      const out=document.getElementById("output");
+      
+      let gainedLv=0,finalLv=0;
+
+      if(targetRaw!==""){
+        let t=Number(targetRaw);
+        let r=simulateOptimal(S,W,Q,B,t);
+        if(r.ok){
+          gainedLv=t; finalLv=t;
+          out.innerHTML=`Cấp đạt được: ${t}\nĐiểm: ${t*556}\n\n${r.log.join("\n")}\n\nCòn lại: đá ${r.remaining.stone}, gỗ ${r.remaining.wood}, quặng ${r.remaining.ore}`;
         } else {
-          const miss = result.missing;
-          out.innerHTML = `<b>Không đủ tài nguyên để đạt cấp ${target}</b><br>Còn thiếu: Đá ${miss.stone}, Gỗ ${miss.wood}, Quặng ${miss.ore}`;
+          out.innerHTML=`❌ Thiếu tài nguyên để đạt cấp ${t}\nThiếu: Đá ${r.missing.stone}, Gỗ ${r.missing.wood}, Quặng ${r.missing.ore}`;
         }
       } else {
-        const res = computeMaxLv(S,W,Q,B);
-        gainedLv = res.maxLv; finalLv = res.maxLv;
-        if(res.remaining){
-          out.innerHTML = `<b>Cấp tối đa:</b> ${res.maxLv}<br><b>Tổng điểm:</b> ${res.maxLv*556}<br><pre class="log">${res.log.join('\n')}</pre><div>Còn lại: Đá ${res.remaining.stone}, Gỗ ${res.remaining.wood}, Quặng ${res.remaining.ore}</div>`;
-        } else {
-          out.innerHTML = `<b>Không đủ tài nguyên để nâng cấp</b>`;
-        }
+        let r=computeMaxLv(S,W,Q,B);
+        gainedLv=r.maxLv; finalLv=r.maxLv;
+        out.innerHTML=`Cấp tối đa: ${r.maxLv}\nĐiểm: ${r.maxLv*556}\n\n${r.log.join("\n")}`;
       }
 
-      // --- Lưu dữ liệu vào Firestore ---
-      if(auth.currentUser){
-        try{
-          await db.collection('users')
-            .doc(auth.currentUser.uid)
-            .collection('tabs')
-            .doc('cannon')
-            .set({
-              lastComputedLevel: finalLv,
-              lastPoints: finalLv*556,
-              lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            }, {merge:true});
+      out.style.display="block";
+      
+      if(user){
+        await db.collection("users").doc(user.uid).collection("tabs").doc("cannon").set({
+          stone:S, wood:W, ore:Q, boxes:B, targetLevel:targetRaw,
+          lastComputedLevel:finalLv,
+          lastPoints:finalLv*556,
+          lastUpdated:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
 
-          const remaining = await applyCannonGoal(auth.currentUser, gainedLv);
-          if(remaining !== undefined){
-            goalOut.style.display='block';
-            goalOut.innerHTML = `<b>MỤC TIÊU PHÁO (dành riêng cho acc minhlanne)</b><br>Mục tiêu ban đầu: 3000<br>Lần này tăng: ${gainedLv}<br><b>Mục tiêu còn lại: ${remaining}</b>`;
-          }
+        const remaining=await applyCannonGoal(user,gainedLv);
 
-          window.dispatchEvent(new Event("summary.refresh"));
-        }catch(e){ console.error(e); }
+        if(remaining!==undefined){
+          goalBox.style.display="block";
+          goalBox.innerHTML=`🎯 <b>Mục tiêu pháo</b><br>Tăng: +${gainedLv}<br><b>Còn lại: ${remaining}</b>`;
+        }
+
+        window.dispatchEvent(new Event("summary.refresh"));
       }
     });
-  });
 
-  document.addEventListener('DOMContentLoaded', ()=>{
-    window.dispatchEvent(new CustomEvent('tab.open', { detail: { id: 'phao' } }));
   });
 
 })();
