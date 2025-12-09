@@ -100,7 +100,7 @@
     container.innerHTML = `
       <div class="cannon-container">
         <h2>Level Pháo</h2>
-        <div class="input-grid">
+        <div class="input-column">
           <label>Đá <input id="stone" type="number" min="0" value="0"></label>
           <label>Gỗ <input id="wood" type="number" min="0" value="0"></label>
           <label>Quặng <input id="ore" type="number" min="0" value="0"></label>
@@ -113,15 +113,59 @@
       </div>
 
       <style>
-        .cannon-container { background:#f9f9f9; padding:20px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); max-width:700px; margin:auto; }
-        .cannon-container h2 { margin-bottom:16px; text-align:center; color:#1f2937; }
-        .input-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:12px; margin-bottom:16px; }
-        .input-grid label { display:flex; flex-direction:column; font-weight:500; color:#374151; }
-        .input-grid input { padding:8px 10px; border-radius:8px; border:1px solid #d1d5db; font-size:14px; }
+        .cannon-container { 
+          background:#f9f9f9; 
+          padding:20px; 
+          border-radius:12px; 
+          box-shadow:0 4px 12px rgba(0,0,0,0.1); 
+          max-width:500px; 
+          margin:auto; 
+        }
+        .cannon-container h2 { 
+          margin-bottom:16px; 
+          text-align:center; 
+          color:#1f2937; 
+        }
+        .input-column { 
+          display:flex; 
+          flex-direction:column; 
+          gap:12px; 
+          margin-bottom:16px; 
+        }
+        .input-column label { 
+          display:flex; 
+          flex-direction:column; 
+          font-weight:500; 
+          color:#374151; 
+        }
+        .input-column input { 
+          padding:8px 10px; 
+          border-radius:8px; 
+          border:1px solid #d1d5db; 
+          font-size:14px; 
+          width:100%;
+        }
         .controls { text-align:center; margin-bottom:16px; }
-        .controls button.primary { padding:10px 20px; font-size:16px; border:none; border-radius:8px; background:#3b82f6; color:white; cursor:pointer; transition:0.2s; }
+        .controls button.primary { 
+          padding:10px 20px; 
+          font-size:16px; 
+          border:none; 
+          border-radius:8px; 
+          background:#3b82f6; 
+          color:white; 
+          cursor:pointer; 
+          transition:0.2s; 
+        }
         .controls button.primary:hover { background:#2563eb; }
-        .result { background:white; padding:14px; border-radius:8px; border:1px solid #e5e7eb; margin-bottom:12px; line-height:1.5; white-space:pre-wrap; }
+        .result { 
+          background:white; 
+          padding:14px; 
+          border-radius:8px; 
+          border:1px solid #e5e7eb; 
+          margin-bottom:12px; 
+          line-height:1.5; 
+          white-space:pre-wrap; 
+        }
         #goalOutput { border-left:4px solid #f59e0b; }
       </style>
     `;
