@@ -23,7 +23,7 @@ window.addEventListener('tab.open', async (e)=>{
     </label>
 
     <label>Cấp mục tiêu:
-      <input id="targetLevel" type="number" min="0" placeholder="Để trống nếu muốn tính cấp tối đa">
+      <input id="targetLevel" type="number" min="0" placeholder="Để trống = max">
     </label>
 
     <div id="targetInfo" class="result" style="display:none"></div>
@@ -161,3 +161,4 @@ window.addEventListener('tab.open', async (e)=>{
   });
 
 });
+
