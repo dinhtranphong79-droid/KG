@@ -1,41 +1,94 @@
-// Hero tab
+import { db, auth } from "../firebase.js";
+
+const container = document.getElementById("tab_hero");
+
+function renderHTML() {
+  container.innerHTML = `
+    <div class="app">
+      <header>
+        <div>
+          <h1>Điểm tướng SSR & Exp</h1>
+          <div style="color:var(--muted);font-size:13px;margin-top:6px">
+            Chỉ hiện kết quả khi bấm "Tính". 1 thẻ SSR = 14.000 điểm. EXP: B+ 100 / B 700 / SR 3.500.
+          </div>
+        </div>
+        <div class="controls">
+          <div class="tabs" id="heroTabs"></div>
+        </div>
+      </header>
+
+      <main class="grid">
+        <section class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div><strong id="systemTitle">Lửa</strong></div>
+            <div class="flex"><button class="btn" id="btnCalcAllHero">Tính toàn bộ</button></div>
+          </div>
+
+          <div style="margin-bottom:12px;display:flex;gap:10px">
+            <input id="filterHero" placeholder="Tìm tướng theo tên" />
+          </div>
+
+          <div class="hero-list" id="heroList"></div>
+        </section>
+
+        <aside class="panel">
+          <div><strong>Tổng kết</strong></div>
+          <div class="summary" id="summary"></div>
+        </aside>
+      </main>
+
+      <footer>Dữ liệu tự lưu trên Firestore theo user.</footer>
+    </div>
+
+    <!-- Modal -->
+    <div id="resultModal" class="modal">
+      <div id="modalBox" class="modal-content">
+        <div id="modalHeader" class="modal-header">Kết quả</div>
+        <div id="modalBody" class="modal-body"></div>
+        <div class="modal-footer">
+          <button onclick="closeModalHero()">Đóng</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// --- Constants & data ---
+const COST_ARRAY = {0:[20,20],1:[30,40,50],2:[60,70,80,80],3:[100,110,120,130,140],4:[170,180,190,200,210],5:[]};
 const CARD_POINT = 14000;
 const SYSTEMS = ["Lửa","Cung","Độc","Băng"];
 const EXP_CATS = {"B+":100,"B":700,"SR":3500};
-
-// Dữ liệu hero theo hệ
 const heroesData = {
   "Lửa": ["Dolvar","Paul","Alex","Allen","Anko","Apollo","Blaise","Brie","Catrina","Christie","Cosette","Dain","Darcy","Daria","Dean","Edmund","Erika","Fiona","Gisele","Gro","Ivy","Kenshiro","Kirona","Kyle","Lovelace","Mirai","Penny","Seraphin","Simon","Sindra","Theodore","Tracy","Vanessa","Wallis","Wukong"],
   "Cung": ["Aidan","Alden","Ariza","Authur","Bella","Colin","Doris","Dylan","Eleanora","Fatima","Gabriel","Green","Jennifer","Johannes","Kadir","Kailin","Layla","Livia","Maya","Meg","Mira","Montag","O'Neil","Padme","Pan","Ptolemy","Richard","Ryan","Sahar","Sebastian","Seraphia","Solder","Torvi","Trist"],
   "Độc": ["Allison","Angelina","Arwin","Benjamin","Blackwell","Boudica","Catherine","Chiyoko","Claudia","Daisy","Elia","Gruen","Issac","Lilith","Lomax","Luvia","Maxwell","Meniere","Morgana","Mycelia","Naga","Pythia","Rila","Rogers","Rosamond","Suad","Tumnus","Viper","Viola","Webster","Wendy"],
   "Băng": ["Aurora","Christine","Clarence","Enzo","Eslaine","Filius","Hadi","Hana","Hathes","Havik","Jessica","Judy","Keith","Lilani","Loka","Maud","Nathaniel","Nicole","Nina","Nivea","Olaf","Parr","Paula","Pedra","Ralph","Rebecca","Rudolph","Selene","Trishy","Vera","Ao Deng","Ao Yue"]
 };
+const expList = { "B+": ["Daniel"], "B": ["Anton","Peter","Etley"], "SR": ["Alucard","Samar","Harold","Kris","Merlin","Ophelia","Arwyn"] };
 
-const expList = { "B+": ["Daniel"], "B": ["Anton","Peter","Etley"], "SR": ["Alucard","Samar","Harold","Kris","Merlin","Ophelia","Arwyn"]};
-
-// Firestore path: users/{uid}/heroState
-const LS_KEY = "hero_upgrader_state_v2";
-const $ = id => document.getElementById(id);
+const LS_KEY = "hero_state_v2";
 let state = {heroes:[], activeTab:SYSTEMS[0]};
 
-function idNow(){ return "h-"+Math.random().toString(36).slice(2,9); }
-function formatNumber(n){ return Number(n).toLocaleString("vi-VN"); }
-function maxBarForStar(st){ return (COST_ARRAY[st]||[]).length; }
-function costFor(st,bar){ return (COST_ARRAY[st]||[])[bar]||null; }
+// --- Helper ---
+const $ = id => container.querySelector('#'+id);
+function idNow(){return "h-"+Math.random().toString(36).slice(2,9);}
+function formatNumber(n){return Number(n).toLocaleString("vi-VN");}
 
+// --- Hero functions ---
+function maxBarForStar(st){return (COST_ARRAY[st]||[]).length;}
+function costFor(st,bar){return (COST_ARRAY[st]||[])[bar]||null;}
 function defaultHeroData(name,system){
-  let sys=system;
+  let sys=system; 
   for(const cat in expList) if(expList[cat].includes(name)) sys="Exp";
   return {id:idNow(), name, system:sys, current_star:0, current_bar:0, cards_owned:0};
 }
 
-// --- Tính nâng cấp 1 hero ---
 function calculateUpgrade(hero){
   if(hero.system==="Exp"){
     let rank=null;
     for(const cat in expList) if(expList[cat].includes(hero.name)) rank=cat;
-    let per = rank? EXP_CATS[rank]:0;
-    let cards = Number(hero.cards_owned)||0;
+    const per = rank ? EXP_CATS[rank] : 0;
+    const cards = Number(hero.cards_owned)||0;
     return {isExp:true, exp_rank:rank, exp_per_card:per, exp_points:cards*per, cards_consumed:cards, cards_left:0, final_star:0, final_bar:0, missing_to_5:0};
   }
   let star=hero.current_star||0, bar=hero.current_bar||0, cards=hero.cards_owned||0, consumed=0;
@@ -56,19 +109,17 @@ function calculateUpgrade(hero){
     if(need===null){ ms=Infinity; break; }
     ms+=need; b++;
   }
-  return {isExp:false, final_star:star, final_bar:bar, cards_consumed:consumed, cards_left, missing_to_5:ms};
+  return {isExp:false, final_star:star, final_bar:bar, cards_consumed:consumed, cards_left:cards_left, missing_to_5:ms};
 }
 
-// --- Modal ---
 function showModal(title,msg,system){
   const modal=$("resultModal"), header=$("modalHeader"), body=$("modalBody"), box=$("modalBox");
   box.className="modal-content sys-"+system;
   header.innerText=title; body.innerText=msg;
   modal.style.display="flex";
 }
-function closeModal(){ $("resultModal").style.display="none"; }
+function closeModalHero(){ $("resultModal").style.display="none"; }
 
-// --- Hiển thị kết quả 1 hero ---
 function showModalResult(hero){
   const res=calculateUpgrade(hero);
   if(res.isExp){
@@ -93,7 +144,7 @@ Nâng đến: ${res.final_star}★ bậc ${res.final_bar}
   showModal(`${hero.name} – Kết quả`, msg, hero.system);
 }
 
-// --- Tạo hero element ---
+// --- Render ---
 function createHeroElement(h){
   const box=document.createElement("div"); box.className="hero";
   let cls=h.system==="Lửa"?"fire":h.system==="Cung"?"cung":h.system==="Độc"?"độc":h.system==="Băng"?"băng":"exp"; 
@@ -101,12 +152,14 @@ function createHeroElement(h){
 
   const nameCol=document.createElement("div"); nameCol.innerHTML=`<div style="font-weight:600">${h.name}</div><small>${h.system}</small>`;
 
-  const starCol=document.createElement("div"); const starSel=document.createElement("select");
+  const starCol=document.createElement("div"); 
+  const starSel=document.createElement("select");
   starSel.innerHTML=Array.from({length:6}).map((_,i)=>`<option value="${i}" ${i===h.current_star?'selected':''}>${i}★</option>`).join("");
   starSel.onchange=()=>{ h.current_star=parseInt(starSel.value,10); if(h.current_bar>maxBarForStar(h.current_star)) h.current_bar=maxBarForStar(h.current_star); saveState(); renderSummary(); };
   starCol.appendChild(starSel);
 
-  const barCol=document.createElement("div"); const barSel=document.createElement("select");
+  const barCol=document.createElement("div"); 
+  const barSel=document.createElement("select");
   const maxBar=maxBarForStar(h.current_star);
   barSel.innerHTML=Array.from({length:maxBar+1}).map((_,i)=>`<option value="${i}" ${i===h.current_bar?'selected':''}>Bậc ${i}</option>`).join("");
   barSel.onchange=()=>{ h.current_bar=parseInt(barSel.value,10); saveState(); renderSummary(); };
@@ -126,7 +179,6 @@ function createHeroElement(h){
   return box;
 }
 
-// --- Render hero list ---
 function renderHeroList(){
   const list=$("heroList"); list.innerHTML="";
   const f=($("filterHero").value||"").trim().toLowerCase();
@@ -137,7 +189,6 @@ function renderHeroList(){
   }
 }
 
-// --- Render summary ---
 function renderSummary(){
   const box=$("summary"); box.innerHTML="";
   const totals={}; SYSTEMS.concat(Object.keys(expList)).forEach(s=>totals[s]=0);
@@ -173,54 +224,52 @@ function renderSummary(){
   box.appendChild(totalRow);
 }
 
-// --- Render tabs ---
 function renderTabs(){
-  const tabs=$("tabs"); tabs.innerHTML="";
+  const tabs=$("heroTabs"); tabs.innerHTML="";
   SYSTEMS.concat(Object.keys(expList)).forEach(s=>{
     const t=document.createElement("div"); t.className="tab"+(state.activeTab===s?" active":""); t.textContent=s;
     const color=s==="Lửa"?"var(--fire)":s==="Cung"?"var(--light)":s==="Độc"?"var(--wind)":s==="Băng"?"var(--water)":"var(--exp)";
-    if(state.activeTab===s){ t.style.background=color; t.style.color="#fff"; t.style.fontWeight="600"; } 
-    else { t.style.background="#eaeaea"; t.style.color="var(--muted)"; t.style.fontWeight="400"; }
+    if(state.activeTab===s){ t.style.background=color; t.style.color="#fff"; t.style.fontWeight="600"; } else { t.style.background="#eaeaea"; t.style.color="var(--muted)"; t.style.fontWeight="400"; }
     t.onclick=()=>{ state.activeTab=s; saveState(); renderTabs(); renderHeroList(); $("systemTitle").innerText=s; };
     tabs.appendChild(t);
   });
 }
 
-// --- Firestore auto-save ---
-function saveState(){
-  const user = auth.currentUser;
-  if(user){
-    db.collection('users').doc(user.uid).collection('heroState').doc('data').set(state)
-      .then(()=>console.log('Hero state saved to Firestore'))
-      .catch(err=>console.error(err));
-  }
-  localStorage.setItem(LS_KEY,JSON.stringify(state));
+// --- Firestore ---
+export function getState(){
+  return state;
 }
 
-// --- Load state ---
-function loadState(){
-  const user = auth.currentUser;
-  if(user){
-    db.collection('users').doc(user.uid).collection('heroState').doc('data').get()
-      .then(doc=>{
-        if(doc.exists){ state=doc.data(); }
-        initializeHeroes();
-      }).catch(()=>initializeHeroes());
-  } else initializeHeroes();
+export function setState(data){
+  if(!data) return;
+  state=data;
 }
 
-function initializeHeroes(){
+export async function loadState(){
+  const user = auth.currentUser;
+  if(!user) return;
+  const docRef = await db.collection("users").doc(user.uid).collection("modules").doc("hero").get();
+  if(docRef.exists) setState(docRef.data());
+  // ensure all heroes exist
   SYSTEMS.concat(Object.keys(expList)).forEach(s=>{
     (heroesData[s]||[]).forEach(n=>{ if(!state.heroes.find(h=>h.name===n)) state.heroes.push(defaultHeroData(n,s)); });
-    for(const cat in expList) expList[cat].forEach(n=>{ if(!state.heroes.find(h=>h.name===n)) state.heroes.push(defaultHeroData(n,"Exp")); });
   });
   saveState();
-  renderTabs(); renderHeroList(); renderSummary();
+}
+
+export async function saveState(){
+  const user = auth.currentUser;
+  if(!user) return;
+  await db.collection("users").doc(user.uid).collection("modules").doc("hero").set(state);
 }
 
 // --- Events ---
-$("filterHero").oninput=renderHeroList;
-$("btnCalcAll").onclick=()=>{renderSummary();};
+renderHTML();
+$("filterHero").oninput = renderHeroList;
+$("btnCalcAllHero").onclick = renderSummary;
 
-// --- Init ---
-loadState();
+loadState().then(()=>{
+  renderTabs();
+  renderHeroList();
+  renderSummary();
+});
