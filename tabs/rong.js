@@ -1,7 +1,7 @@
 window.addEventListener('tab.open', async (e)=>{
   if(e.detail.id !== 'rong') return;
   const container = document.getElementById('tab_rong');
-  container.innerHTML = `<div class="small">Dragon — tính nâng phù hiệu</div>
+  container.innerHTML = `<div class="small">Dragon</div>
     <div class="grid">
       <div class="card">
         <label>Phù văn B <input id="d_haveB" type="number" min="0" value="0"></label>
@@ -58,3 +58,4 @@ window.addEventListener('tab.open', async (e)=>{
     }
   });
 });
+
