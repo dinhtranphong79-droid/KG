@@ -221,5 +221,8 @@
 
     };
   });
-
+document.addEventListener("DOMContentLoaded", () => {
+  window.dispatchEvent(new CustomEvent('tab.open', { detail: { id: 'phao' } }));
+});
 })();
+
