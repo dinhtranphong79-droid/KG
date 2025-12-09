@@ -1,13 +1,12 @@
 // ----------------- tabs/bua.js -----------------
 (function(){
 
-  // Hằng điểm
   const POINT_PER_HAMMER = 100;
   const POINT_PER_JENNIFER = 1000;
 
   function fmt(n){ return Number(n).toLocaleString('vi-VN'); }
   function parseNonNegInt(v){
-    if(v === '' || v === null || v === undefined) return 0;
+    if(v==='' || v===null || v===undefined) return 0;
     const n = Math.floor(Number(v));
     if(Number.isNaN(n) || n<0) return null;
     return n;
@@ -23,13 +22,13 @@
     return doc.exists ? doc.data() : {};
   }
 
-  window.addEventListener('tab.open', async e=>{
-    if(e.detail.id !== 'bua') return;
-
+  async function renderBuaTab(){
     const user = auth.currentUser;
     const saved = await loadSaved(user);
 
     const container = document.getElementById('tab_bua');
+    if(!container) return;
+
     container.innerHTML = `
       <div class="small">Búa & Jennifer</div>
       <label>Số búa: <input id="m_hammer" type="number" min="0" value="${saved.h ?? 0}"></label>
@@ -38,8 +37,8 @@
         <button id="m_compute" class="primary">Tính</button>
         <button id="m_clear" class="clear">Đặt lại</button>
       </div>
-      <div id="m_result" class="result" style="display:none"></div>
       <div id="m_error" class="error" style="display:none"></div>
+      <div id="m_result" class="result" style="display:none"></div>
     `;
 
     const hammerInput = document.getElementById('m_hammer');
@@ -60,18 +59,16 @@
 
     async function compute(){
       clearError();
-
       let h = parseNonNegInt(hammerInput.value);
       let j = parseNonNegInt(jennInput.value);
-
-      if(h === null || j === null){
+      if(h===null || j===null){
         showError('Vui lòng nhập số nguyên >= 0 cho cả hai ô.');
         resultDiv.style.display='none';
         return;
       }
 
-      const hammerPoints = h*POINT_PER_HAMMER;
-      const jennPoints = j*POINT_PER_JENNIFER;
+      const hammerPoints = h * POINT_PER_HAMMER;
+      const jennPoints = j * POINT_PER_JENNIFER;
       const total = hammerPoints + jennPoints;
 
       resultDiv.innerHTML = `
@@ -81,22 +78,21 @@
       `;
       resultDiv.style.display='block';
 
-      // Lưu Firestore
       if(user){
         await db.collection('users').doc(user.uid)
           .collection('tabs').doc('bua')
           .set({
-            h, j,
-            lastPoints: total,
+            h, j, lastPoints: total,
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
           }, {merge:true});
+
         window.dispatchEvent(new Event('summary.refresh'));
       }
     }
 
     btnCompute.addEventListener('click', compute);
 
-    // Enter key
+    // Enter key tính luôn
     [hammerInput, jennInput].forEach(inp=>{
       inp.addEventListener('keydown', e=>{
         if(e.key==='Enter'){ compute(); e.preventDefault(); }
@@ -112,10 +108,18 @@
       hammerInput.focus();
     });
 
-    // Init
     clearError();
     resultDiv.style.display='none';
+  }
 
+  // Lắng nghe mở tab
+  window.addEventListener('tab.open', e=>{
+    if(e.detail.id==='bua') renderBuaTab();
+  });
+
+  // Mở tab tự động khi load web
+  document.addEventListener('DOMContentLoaded', ()=>{
+    window.dispatchEvent(new CustomEvent('tab.open',{detail:{id:'bua'}}));
   });
 
 })();
