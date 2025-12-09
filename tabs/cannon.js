@@ -3,9 +3,9 @@ window.addEventListener('tab.open', async (e)=>{
 
   const container = document.getElementById('tab_phao');
 
+  // --- Render HTML ---
   container.innerHTML = `
     <div class="small">Nhập tài nguyên</div>
-
 
     <label>Đá:
       <input id="stone" type="number" min="0" value="0">
@@ -36,44 +36,30 @@ window.addEventListener('tab.open', async (e)=>{
     <div id="output" class="result" style="display:none"></div>
   `;
 
-  const user = auth.currentUser;
-  let targetLeft = null, lastLevel = null, targetStart = 3000;
-  let docRef = null;
   const targetInfo = container.querySelector('#targetInfo');
+  const output = container.querySelector('#output');
+  const btnCompute = container.querySelector('#btnCompute');
 
-  // --- Khởi tạo dữ liệu Firestore minhlanne ---
-  if(user && user.email?.toLowerCase().includes("minhlanne")){
-    docRef = db.collection("users").doc(user.uid).collection('tabs').doc('cannon');
-    const snap = await docRef.get();
+  // --- localStorage để tự lưu dữ liệu ---
+  const LS_KEY = 'cannon_tab_state';
+  let state = {cannonLevel:0, stone:0, wood:0, ore:0, boxes:0};
 
-    targetInfo.style.display = "block";
-
-    if(!snap.exists){
-      await docRef.set({
-        targetStart,
-        targetLeft: targetStart,
-        lastLevel: 0,
-        lastPoints: 0,
-        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      targetLeft = targetStart;
-      lastLevel = 0;
-    } else {
-      const d = snap.data();
-      targetLeft = d.targetLeft ?? targetStart;
-      lastLevel = d.lastLevel ?? 0;
-    }
-
-    targetInfo.innerHTML = `
-      <div><b>Mục tiêu pháo:</b> ${targetStart}</div>
-      <div><b>Còn lại:</b> ${targetLeft}</div>
-      <div><b>Last level:</b> ${lastLevel}</div>
-    `;
+  function saveState(){
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
   }
+  function loadState(){
+    const d = localStorage.getItem(LS_KEY);
+    if(d) state = JSON.parse(d);
+    container.querySelector('#cannonLevel').value = state.cannonLevel;
+    container.querySelector('#stone').value = state.stone;
+    container.querySelector('#wood').value = state.wood;
+    container.querySelector('#ore').value = state.ore;
+    container.querySelector('#boxes').value = state.boxes;
+  }
+  loadState();
 
   function toNum(id){
-    let v = Number(container.querySelector(`#${id}`).value);
-    return (isNaN(v) || v<0)?0:v;
+    return Math.max(0, Math.floor(Number(container.querySelector(`#${id}`).value)||0));
   }
 
   function simulateOptimal(S,W,Q,B,lv){
@@ -114,52 +100,79 @@ window.addEventListener('tab.open', async (e)=>{
     return {maxLv:lo, log:lastLog, remaining:lastRemaining};
   }
 
-  // --- Gắn sự kiện click **sau khi DOM đã render xong** ---
-  const btn = container.querySelector('#btnCompute');
-  btn.addEventListener('click', async ()=>{
-    const level = Number(container.querySelector('#cannonLevel').value)||0;
-    const S=toNum('stone'), W=toNum('wood'), Q=toNum('ore'), B=toNum('boxes');
-    const targetInput=container.querySelector('#targetLevel').value.trim();
-    const out=container.querySelector('#output'); out.style.display='block';
+  // --- Firestore minhlanne ---
+  const isMinhlanne = user?.email?.toLowerCase().includes("minhlanne");
+  let targetStart = 3000, lastLevel = 0, targetLeft = targetStart;
+  let docRef = null;
+  if(isMinhlanne){
+    docRef = db.collection("users").doc(user.uid).collection('tabs').doc('cannon');
+    const snap = await docRef.get();
+    if(snap.exists){
+      const d = snap.data();
+      lastLevel = d.lastLevel ?? 0;
+      targetLeft = d.targetLeft ?? targetStart;
+    } else {
+      await docRef.set({
+        targetStart,
+        targetLeft: targetStart,
+        lastLevel: 0,
+        lastPoints:0,
+        updated: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    targetInfo.style.display = "block";
+    targetInfo.innerHTML = `<div><b>Mục tiêu pháo:</b> ${targetStart}</div>
+                            <div><b>Còn lại:</b> ${targetLeft}</div>
+                            <div><b>Last level:</b> ${lastLevel}</div>`;
+  }
 
+  // --- Gắn sự kiện Tính ---
+  btnCompute.addEventListener('click', async ()=>{
+    state.cannonLevel = toNum('cannonLevel');
+    state.stone = toNum('stone');
+    state.wood = toNum('wood');
+    state.ore = toNum('ore');
+    state.boxes = toNum('boxes');
+    saveState(); // lưu localStorage
+
+    const targetInput = container.querySelector('#targetLevel').value.trim();
     let gained=0, finalLv=0;
 
+    let outHtml = "";
     if(targetInput!==''){
-      const t=Number(targetInput);
-      const r=simulateOptimal(S,W,Q,B,t);
-      if(r.ok){ gained=finalLv=t; out.innerHTML=`<b>Có thể đạt cấp:</b> ${t}<br><b>Tổng điểm:</b> ${t*556}<br><pre>${r.log.join('\n')}</pre><br>Còn lại: đá ${r.remaining.stone}, gỗ ${r.remaining.wood}, quặng ${r.remaining.ore}`; }
-      else{ const m=r.missing; out.innerHTML=`⚠️ Thiếu: đá ${m.stone}, gỗ ${m.wood}, quặng ${m.ore}`; }
+      const t = Number(targetInput);
+      const r = simulateOptimal(state.stone, state.wood, state.ore, state.boxes, t);
+      if(r.ok){ finalLv=t; gained=finalLv-lastLevel; outHtml=`<b>Có thể đạt cấp:</b> ${t}<br><b>Tổng điểm:</b> ${t*556}<br><pre>${r.log.join('\n')}</pre>`; }
+      else { const m=r.missing; outHtml=`⚠️ Thiếu: đá ${m.stone}, gỗ ${m.wood}, quặng ${m.ore}`; }
     } else {
-      const r=computeMaxLv(S,W,Q,B);
-      gained=finalLv=r.maxLv;
-      out.innerHTML=`<b>Cấp tối đa:</b> ${r.maxLv}<br><b>Tổng điểm:</b> ${r.maxLv*556000}<br><pre>${r.log.join('\n')}</pre>`;
-      if(r.remaining) out.innerHTML+=`<br>Còn lại: đá ${r.remaining.stone}, gỗ ${r.remaining.wood}, quặng ${r.remaining.ore}`;
+      const r = computeMaxLv(state.stone, state.wood, state.ore, state.boxes);
+      finalLv=r.maxLv;
+      gained = finalLv-lastLevel;
+      outHtml=`<b>Cấp tối đa:</b> ${r.maxLv}<br><b>Tổng điểm:</b> ${r.maxLv*556000}<br><pre>${r.log.join('\n')}</pre>`;
+      if(r.remaining) outHtml+=`<br>Còn lại: đá ${r.remaining.stone}, gỗ ${r.remaining.wood}, quặng ${r.remaining.ore}`;
     }
+    output.style.display="block";
+    output.innerHTML = outHtml;
 
-    // --- Firestore minhlanne ---
-    if(user && docRef){
-      if(finalLv>lastLevel) gained=finalLv-lastLevel;
-      targetLeft=Math.max(0,(targetLeft ?? targetStart)-gained);
-      lastLevel=finalLv;
+    // Firestore minhlanne
+    if(isMinhlanne && docRef){
+      targetLeft = Math.max(0, targetLeft - gained);
+      lastLevel = finalLv;
 
       await docRef.set({
         targetStart,
         targetLeft,
-        lastLevel: finalLv,
-        lastPoints: finalLv*556,
+        lastLevel,
+        lastPoints: finalLv*556000,
         updated: firebase.firestore.FieldValue.serverTimestamp()
       },{merge:true});
 
-      targetInfo.style.display="block";
-      targetInfo.innerHTML=`
-        <div><b>Mục tiêu pháo:</b> ${targetStart}</div>
-        <div><b>Đã tăng:</b> +${gained}</div>
-        <div><b>Còn lại:</b> ${targetLeft}</div>
-        <div><b>Level mới:</b> ${finalLv}</div>
-      `;
+      targetInfo.innerHTML = `<div><b>Mục tiêu pháo:</b> ${targetStart}</div>
+                              <div><b>Đã tăng:</b> +${gained}</div>
+                              <div><b>Còn lại:</b> ${targetLeft}</div>
+                              <div><b>Level mới:</b> ${finalLv}</div>`;
     }
 
     window.dispatchEvent(new Event('summary.refresh'));
   });
-
 });
