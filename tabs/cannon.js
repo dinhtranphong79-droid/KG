@@ -9,7 +9,7 @@
   // 🔥 GIỮ NGUYÊN LOGIC TÍNH
   function simulateOptimal(S,W,Q,B,lv){
     let stone=S, wood=W, ore=Q, box=B, log=[];
-    const needStone=1.260*lv, needWood=340*lv, needOre=130*lv;
+    const needStone=1260*lv, needWood=340*lv, needOre=130*lv;
 
     // 1️⃣ Dùng hộp pháo → quặng
     let boxForOre = Math.min(box, Math.max(0, needOre - ore));
@@ -116,7 +116,7 @@
       } else{
         const r = computeMaxLv(S,W,Q,B);
         gained=finalLv=r.maxLv;
-        out.innerHTML=`Cấp tối đa: ${r.maxLv}\nĐiểm: ${r.maxLv*556.000}\n\n${r.log.join('\n')}`;
+        out.innerHTML=`Cấp tối đa: ${r.maxLv}\nĐiểm: ${r.maxLv*556000}\n\n${r.log.join('\n')}`;
       }
       out.style.display='block';
 
@@ -138,3 +138,4 @@
   document.addEventListener('DOMContentLoaded', ()=>{ window.dispatchEvent(new CustomEvent('tab.open',{detail:{id:'phao'}})); });
 
 })();
+
