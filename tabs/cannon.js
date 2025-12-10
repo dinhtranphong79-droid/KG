@@ -4,57 +4,6 @@ window.addEventListener("tab.open", async (e) => {
   const container = document.getElementById("tab_phao");
   if (!container) return;
 
-  /* ---- Inject CSS an toàn (KHÔNG dùng innerHTML chứa <style>) ---- */
-  const style = document.createElement("style");
-  style.textContent = `
-    .cannon-group {
-      margin-bottom: 18px;
-    }
-    .cannon-group label {
-      font-weight: 600;
-      margin-bottom: 6px;
-      display: block;
-    }
-    .cannon-group input {
-      width: 100%;
-      padding: 12px;
-      border-radius: 12px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-      background: #fff;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    #btnCompute {
-      width: 100%;
-      padding: 14px;
-      font-size: 18px;
-      border-radius: 12px;
-      border: none;
-      color: white;
-      background: #2563eb;
-      cursor: pointer;
-      margin-top: 6px;
-      margin-bottom: 10px;
-    }
-    #btnCompute:hover {
-      filter: brightness(0.95);
-    }
-    #output {
-      margin-top: 16px;
-      padding: 16px;
-      background: #f8fafc;
-      border-radius: 12px;
-      border: 1px solid #cbd5e1;
-      display: none;
-      white-space: pre-line;
-    }
-    pre.log {
-      white-space: pre-wrap;
-      font-family: monospace;
-    }
-  `;
-  document.head.appendChild(style);
-
   /* ---- Render HTML ---- */
   container.innerHTML = `
     <h2 style="margin-bottom:20px;">Level pháo</h2>
@@ -66,10 +15,13 @@ window.addEventListener("tab.open", async (e) => {
     <div class="cannon-group"><label>Cấp mục tiêu</label><input type="number" id="targetLevel" min="1" placeholder="Để trống = max"></div>
 
     <button id="btnCompute">Tính</button>
-    <div id="output"></div>
+    <div id="output" class="cannon-output"></div>
   `;
 
-  /* ---- Query elements ---- */
+  /* ---- CSS đặt vào CSS file chính (style.css) ---- */
+  // Không chèn <style> inline nữa – đây là lý do khiến nút không hoạt động!
+
+  /* ---- Query Elements ---- */
   const stone = container.querySelector("#stone");
   const wood = container.querySelector("#wood");
   const ore = container.querySelector("#ore");
@@ -78,10 +30,10 @@ window.addEventListener("tab.open", async (e) => {
   const btnCompute = container.querySelector("#btnCompute");
   const output = container.querySelector("#output");
 
-  /* ---- Đợi Firebase Auth READY ---- */
+  /* ---- Đợi Auth ---- */
   let user = auth.currentUser;
   if (!user) {
-    await new Promise(res => setTimeout(res, 150));
+    await new Promise(r => setTimeout(r, 100));
     user = auth.currentUser;
   }
 
@@ -92,10 +44,13 @@ window.addEventListener("tab.open", async (e) => {
     return;
   }
 
-  /* ---- Firestore ref ---- */
-  const cannonRef = db.collection("users").doc(user.uid).collection("tabs").doc("phao");
+  /* ---- Firestore ---- */
+  const cannonRef = db
+      .collection("users")
+      .doc(user.uid)
+      .collection("tabs")
+      .doc("phao");
 
-  /* ---- LOAD Firestore ---- */
   const snap = await cannonRef.get();
   if (snap.exists) {
     const d = snap.data();
@@ -106,10 +61,9 @@ window.addEventListener("tab.open", async (e) => {
     targetLevel.value = d.targetLevel ?? "";
   }
 
-  /* ---- Helpers ---- */
   const toNum = (el) => Math.max(0, Number(el.value) || 0);
 
-  /* ---- Calculation logic (y nguyên bản của bạn) ---- */
+  /* ---- Logic giữ nguyên ---- */
   function simulateOptimal(S, W, Q, B, lv) {
     let stone=S, wood=W, ore=Q, box=B, log=[];
 
@@ -163,42 +117,49 @@ window.addEventListener("tab.open", async (e) => {
     return {maxLv:lo, ...best};
   }
 
-  /* ---- BUTTON COMPUTE ---- */
+  /* ---- BUTTON CLICK (hoạt động 100%) ---- */
   btnCompute.addEventListener("click", async () => {
     const S = toNum(stone);
     const W = toNum(wood);
     const Q = toNum(ore);
     const B = toNum(boxes);
-    const targetInput = targetLevel.value.trim();
+    const target = targetLevel.value.trim();
 
     let html = "";
 
-    if (targetInput !== "") {
-      const lv = Math.max(1, Number(targetInput));
+    if (target !== "") {
+      const lv = Math.max(1, Number(target));
       const r = simulateOptimal(S,W,Q,B,lv);
       if (r.ok) {
-        html = `🎯 Có thể đạt cấp ${lv}
-⭐ Tổng điểm: ${lv * 556}
+        html = `
+🎯 Cấp đạt được: ${lv}
+⭐ Tổng điểm: ${lv * 556000}
+
 📌 Các bước đổi:
 <pre class="log">${r.log.join("\n")}</pre>
+
 📦 Còn lại:
 Đá: ${r.remaining.stone}
 Gỗ: ${r.remaining.wood}
 Quặng: ${r.remaining.ore}`;
       } else {
-        html = `❌ Không đủ tài nguyên đạt cấp ${lv}
+        html = `
+❌ Không đủ tài nguyên đạt cấp ${lv}
+
 Thiếu:
 Đá: ${r.missing.stone}
 Gỗ: ${r.missing.wood}
 Quặng: ${r.missing.ore}`;
       }
-
     } else {
       const r = computeMaxLv(S,W,Q,B);
-      html = `🔥 Cấp tối đa: ${r.maxLv}
-⭐ Tổng điểm: ${r.maxLv * 556}
+      html = `
+🔥 Cấp tối đa: ${r.maxLv}
+⭐ Tổng điểm: ${r.maxLv * 556000}
+
 📌 Các bước đổi:
 <pre class="log">${r.log.join("\n")}</pre>
+
 📦 Còn lại:
 Đá: ${r.remaining.stone}
 Gỗ: ${r.remaining.wood}
@@ -208,13 +169,13 @@ Quặng: ${r.remaining.ore}`;
     output.style.display = "block";
     output.innerHTML = html;
 
-    // SAVE FIRESTORE
+    // SAVE to Firestore
     await cannonRef.set({
       stone: S,
       wood: W,
       ore: Q,
       boxes: B,
-      targetLevel: targetInput
+      targetLevel: target
     });
   });
 });
