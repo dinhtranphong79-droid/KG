@@ -128,7 +128,7 @@ window.addEventListener('tab.open', async (e)=>{
       const res = computeMaxLv(S,W,Q,B);
       if(res.remaining){
         html=`<b>Cấp tối đa:</b> ${res.maxLv}<br>
-        <b>Tổng điểm:</b> ${res.maxLv*556000}<br><br>
+        <b>Tổng điểm:</b> ${res.maxLv*556}<br><br>
         <b>Các bước đổi:</b><br><pre class="log">${res.log.join('\n')}</pre><br>
         <b>Còn lại:</b><br>
         <ul><li>Đá: ${res.remaining.stone}</li>
