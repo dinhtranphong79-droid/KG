@@ -11,25 +11,47 @@ const TABS = [
   {id:'account', label:'Tài khoản'}
 ];
 
-const nav=document.getElementById('nav');
-const main=document.getElementById('main');
+const nav = document.getElementById('nav');
+const main = document.getElementById('main');
 
-TABS.forEach(t=>{
-  const btn=document.createElement('button');
-  btn.textContent=t.label;
-  btn.onclick=()=>showTab(t.id);
+/* -------------------------
+   RENDER NAV BUTTONS
+-------------------------- */
+TABS.forEach(t => {
+  const btn = document.createElement('button');
+  btn.textContent = t.label;
+  btn.dataset.tab = t.id;
+  btn.onclick = () => showTab(t.id);
   nav.appendChild(btn);
 });
 
-function showTab(id){
-  main.innerHTML='';
-  const wrap=document.createElement('div'); wrap.className='container';
-  const h=document.createElement('h2'); h.textContent=TABS.find(x=>x.id===id).label;
+/* -------------------------
+   RENDER TAB WITHOUT 
+   WIPING JS EVENTS
+-------------------------- */
+function showTab(id) {
+  // KHÔNG dùng main.innerHTML = '' nữa
+  // → thay bằng .replaceChildren(), không đụng event wiring
+  main.replaceChildren();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'container';
+
+  const h = document.createElement('h2');
+  h.textContent = TABS.find(x => x.id === id).label;
   wrap.appendChild(h);
-  const content=document.createElement('div'); content.id='tab_'+id; content.className='card';
+
+  const content = document.createElement('div');
+  content.id = 'tab_' + id;
+  content.className = 'card';
   wrap.appendChild(content);
+
   main.appendChild(wrap);
-  window.dispatchEvent(new CustomEvent('tab.open',{detail:{id}}));
+
+  // TAB READY → phát event
+  requestAnimationFrame(() => {
+    window.dispatchEvent(new CustomEvent("tab.open", { detail: { id } }));
+  });
 }
 
 showTab('home');
